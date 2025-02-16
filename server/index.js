@@ -4,8 +4,13 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { socketHandler } from './socket/handler.js';
+import connectDB from './db.js';
+import authRoutes from './routes/authRoutes.js';
+import discussionRoutes from './routes/discussionRoutes.js';
 
 dotenv.config();
+
+connectDB();
 
 const app = express();
 const httpServer = createServer(app);
@@ -18,6 +23,9 @@ const io = new Server(httpServer, {
 
 app.use(cors());
 app.use(express.json());
+
+app.use('/api/auth', authRoutes);
+app.use('/api/discussions', discussionRoutes);
 
 socketHandler(io);
 

@@ -1,7 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import { User } from '../models/user.js';
-import { auth } from '../middleware/auth.js';
+import { User } from '../models/userModel.js';
+import { auth } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -25,13 +25,22 @@ router.post('/register', async (req, res) => {
       password
     });
 
+    // Logging here to check before saving
+    console.log('User created:', user);
+
     await user.save();
+
+    // Logging after save
+    console.log('User saved successfully');
 
     const token = jwt.sign(
       { userId: user._id },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
+
+    // Logging token generation
+    console.log('JWT token generated:', token);
 
     res.status(201).json({
       token,
@@ -43,15 +52,20 @@ router.post('/register', async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Registration error:', error);  // Log the error for debugging
     res.status(500).json({ message: 'Server error' });
   }
 });
 
+
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, username } = req.body;
+    
+    const user = await User.findOne({
+      $or: [{ email }, { username }]
+    });
 
-    const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
@@ -77,9 +91,11 @@ router.post('/login', async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Error in login route:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 router.get('/me', auth, async (req, res) => {
   try {

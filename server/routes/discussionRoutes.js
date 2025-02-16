@@ -1,6 +1,6 @@
 import express from 'express';
-import { Discussion } from '../models/discussion.js';
-import { auth } from '../middleware/auth.js';
+import { Discussion } from '../models/discussionModel.js';
+import { auth } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
       .sort({ createdAt: -1 });
     res.json(discussions);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: `Error fetching discussions: ${error.message}` });
   }
 });
 
@@ -23,7 +23,7 @@ router.post('/', auth, async (req, res) => {
       title,
       content,
       author: req.user.userId,
-      tags: tags ? tags.split(',').map(tag => tag.trim()) : []
+      tags: tags ? tags.split(',').map(tag => tag.trim()) : []  // Default to empty array if no tags
     });
 
     await discussion.save();
@@ -31,7 +31,7 @@ router.post('/', auth, async (req, res) => {
     const populatedDiscussion = await discussion.populate('author', 'username reputation');
     res.status(201).json(populatedDiscussion);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: `Error creating discussion: ${error.message}` });
   }
 });
 
@@ -47,7 +47,7 @@ router.get('/:id', async (req, res) => {
     
     res.json(discussion);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: `Error fetching discussion: ${error.message}` });
   }
 });
 
@@ -70,7 +70,7 @@ router.post('/:id/replies', auth, async (req, res) => {
     const updatedDiscussion = await discussion.populate('replies.author', 'username reputation');
     res.json(updatedDiscussion);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: `Error posting reply: ${error.message}` });
   }
 });
 
@@ -92,7 +92,7 @@ router.post('/:id/like', auth, async (req, res) => {
     await discussion.save();
     res.json(discussion);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: `Error liking discussion: ${error.message}` });
   }
 });
 
