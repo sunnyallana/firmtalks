@@ -1,3 +1,5 @@
+// server/models/userModel.js
+
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
@@ -28,7 +30,17 @@ const userSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
-  }
+  },
+  googleId: {
+    type: String,
+    sparse: true
+  },
+  githubId: {
+    type: String,
+    sparse: true
+  },
+  resetToken: String,
+  resetTokenExpiry: Date
 });
 
 userSchema.pre('save', async function(next) {
