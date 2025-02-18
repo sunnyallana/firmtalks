@@ -1,21 +1,35 @@
 import mongoose from 'mongoose';
 
+const replySchema = new mongoose.Schema({
+  content: {
+    type: String,
+    required: true
+  },
+  author: {
+    type: String, // This will store the Clerk User ID
+    required: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  likes: [{
+    type: String // Clerk User IDs
+  }]
+});
+
 const discussionSchema = new mongoose.Schema({
   title: {
     type: String,
     required: true,
-    trim: true,
-    minlength: 10
+    trim: true
   },
   content: {
     type: String,
-    required: true,
-    trim: true,
-    minlength: 30
+    required: true
   },
   author: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: String, // This will store the Clerk User ID
     required: true
   },
   tags: [{
@@ -23,31 +37,14 @@ const discussionSchema = new mongoose.Schema({
     trim: true
   }],
   likes: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    type: String // Clerk User IDs
   }],
-  replies: [{
-    content: {
-      type: String,
-      required: true,
-      trim: true
-    },
-    author: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
-    },
-    createdAt: {
-      type: Date,
-      default: Date.now
-    }
-  }],
+  replies: [replySchema],
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
 
-discussionSchema.index({ title: 'text', content: 'text', tags: 'text' });
-
+// Export the model directly
 export const Discussion = mongoose.model('Discussion', discussionSchema);

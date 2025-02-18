@@ -1,9 +1,11 @@
-// server/models/userModel.js
-
 import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema({
+  clerkId: {
+    type: String,
+    required: true,
+    unique: true,
+  },
   email: {
     type: String,
     required: true,
@@ -18,11 +20,6 @@ const userSchema = new mongoose.Schema({
     trim: true,
     minlength: 3
   },
-  password: {
-    type: String,
-    required: true,
-    minlength: 8
-  },
   reputation: {
     type: Number,
     default: 0
@@ -31,32 +28,11 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  googleId: {
-    type: String,
-    sparse: true
-  },
-  githubId: {
-    type: String,
-    sparse: true
-  },
-  resetToken: String,
-  resetTokenExpiry: Date
-});
-
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
+  lastActive: {
+    type: Date,
+    default: Date.now
   }
 });
 
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
-};
-
+// Export the model directly
 export const User = mongoose.model('User', userSchema);

@@ -5,9 +5,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { socketHandler } from './socket/handler.js';
 import connectDB from './db.js';
-import authRoutes from './routes/authRoutes.js';
+import { clerkMiddleware } from '@clerk/express'
 import discussionRoutes from './routes/discussionRoutes.js';
-import passport from 'passport';
 
 dotenv.config();
 
@@ -24,10 +23,9 @@ const io = new Server(httpServer, {
 
 app.use(cors());
 app.use(express.json());
-app.use(passport.initialize());
+app.use(clerkMiddleware());
 
 
-app.use('/api/auth', authRoutes);
 app.use('/api/discussions', discussionRoutes);
 
 socketHandler(io);
