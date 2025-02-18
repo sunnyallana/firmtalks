@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Shield, MessageSquare, User, Menu, X, BarChart2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { ThemeToggle } from './theme-toggle';
-import { SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react';
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -60,7 +60,7 @@ export function Navbar() {
             <SignedOut>
               <Button variant="ghost" className="hidden md:flex">
                 <User className="mr-2 h-4 w-4" />
-                <Link to="/sign-in">Sign In</Link>
+                <SignInButton />
               </Button>
             </SignedOut>
 

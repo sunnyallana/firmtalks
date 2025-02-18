@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Navbar } from './components/layout/navbar';
 import { useTheme } from './lib/theme';
-import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
+import { SignIn, SignUp, SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
 import { MalwareScannerPage } from './pages/malwareScannerPage';
 import { DiscussionsPage } from './pages/discussionsPage';
 import { PlatformStatisticsPage } from './pages/platformStatisticsPage';
@@ -129,6 +129,9 @@ function App() {
               }
             />
 
+            <Route path="sign-in" element={<SignIn />} />
+            <Route path="sign-up" element={<SignUp />} />
+
             {/* Protected Routes */}
             <Route
               path="/statistics"
@@ -140,7 +143,7 @@ function App() {
                   <SignedOut>
                     <RedirectToSignIn />
                   </SignedOut>
-                </>
+                </> 
               }
             />
 
@@ -164,20 +167,6 @@ function App() {
                 <>
                   <SignedIn>
                     <DiscussionsPage />
-                  </SignedIn>
-                  <SignedOut>
-                    <RedirectToSignIn />
-                  </SignedOut>
-                </>
-              }
-            />
-
-            <Route
-              path="/dashboard"
-              element={
-                <>
-                  <SignedIn>
-                    <MalwareScannerPage />
                   </SignedIn>
                   <SignedOut>
                     <RedirectToSignIn />
