@@ -3,48 +3,61 @@ import mongoose from 'mongoose';
 const replySchema = new mongoose.Schema({
   content: {
     type: String,
-    required: true
+    required: true,
   },
   author: {
-    type: String, // This will store the Clerk User ID
-    required: true
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
+    type: String,
+    required: true,
   },
   likes: [{
-    type: String // Clerk User IDs
-  }]
+    type: String,
+  }],
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  }
 });
 
 const discussionSchema = new mongoose.Schema({
   title: {
     type: String,
     required: true,
-    trim: true
+    minLength: 10,
   },
   content: {
     type: String,
-    required: true
+    required: true,
+    minLength: 30,
   },
   author: {
-    type: String, // This will store the Clerk User ID
-    required: true
+    type: String,
+    required: true,
   },
   tags: [{
     type: String,
-    trim: true
+    trim: true,
   }],
   likes: [{
-    type: String // Clerk User IDs
+    type: String,
   }],
   replies: [replySchema],
   createdAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
   }
 });
 
-// Export the model directly
+discussionSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  next();
+});
+
 export const Discussion = mongoose.model('Discussion', discussionSchema);

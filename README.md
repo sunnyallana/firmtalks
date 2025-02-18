@@ -15,6 +15,14 @@ src/
 |---assets/
 |---|---firmtalks.svg
 |---components/
+|---|---discussionPage.jsx
+|---|---malwareScannerPage.jsx
+|---|---platformScannerPage.jsx
+|---|---dashboard
+|---components/
+|---|---dashboard/
+|---|---|---dashboard-charts.jsx
+|---|---|---dashboard-stats.jsx
 |---|---discussions/
 |---|---|---discussion-form.jsx
 |---|---|---discussion-list.jsx

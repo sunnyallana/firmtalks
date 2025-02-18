@@ -19,7 +19,6 @@ export function Navbar() {
               <span className="text-xl font-bold">FirmTalks</span>
             </Link>
 
-            <SignedIn>
               <div className="hidden md:ml-10 md:flex md:items-center md:space-x-6">
                 <Link 
                   to="/statistics" 
@@ -43,20 +42,12 @@ export function Navbar() {
                   Discussions
                 </Link>
               </div>
-            </SignedIn>
           </div>
 
           {/* Desktop Right Section */}
           <div className="flex items-center space-x-4">
             <ThemeToggle />
             
-            <SignedIn>
-              <Button variant="ghost" className="hidden md:flex">
-                <MessageSquare className="mr-2 h-4 w-4" />
-                New Discussion
-              </Button>
-            </SignedIn>
-
             <SignedOut>
               <Button variant="ghost" className="hidden md:flex">
                 <User className="mr-2 h-4 w-4" />
@@ -69,7 +60,6 @@ export function Navbar() {
             </SignedIn>
 
             {/* Mobile Menu Button */}
-            <SignedIn>
               <Button
                 variant="ghost"
                 size="icon"
@@ -82,12 +72,10 @@ export function Navbar() {
                   <Menu className="h-6 w-6" />
                 )}
               </Button>
-            </SignedIn>
           </div>
         </div>
 
         {/* Mobile Menu */}
-        <SignedIn>
           {isMenuOpen && (
             <div className="border-t border-border md:hidden">
               <div className="flex flex-col space-y-4 py-4">
@@ -115,14 +103,9 @@ export function Navbar() {
                   <MessageSquare className="mr-2 h-4 w-4" />
                   Discussions
                 </Link>
-                <Button variant="ghost" className="justify-start" onClick={() => setIsMenuOpen(false)}>
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  New Discussion
-                </Button>
               </div>
             </div>
           )}
-        </SignedIn>
       </div>
     </nav>
   );

@@ -4,7 +4,7 @@ import {
   Container, 
   Typography, 
   Box, 
-  Paper, 
+  Paper,
   Button, 
   CircularProgress,
   Alert,
@@ -12,12 +12,11 @@ import {
 } from '@mui/material';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import MessageIcon from '@mui/icons-material/Message';
-import ErrorIcon from '@mui/icons-material/Error';
 import { DiscussionList } from '../components/discussions/discussion-list';
 import { DiscussionForm } from '../components/discussions/discussion-form';
 
 export function DiscussionsPage() {
-  const { getToken, isLoaded, isSignedIn } = useAuth();
+  const { getToken, isSignedIn } = useAuth();
   const [discussions, setDiscussions] = useState([]);
   const [showNewDiscussion, setShowNewDiscussion] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,20 +25,16 @@ export function DiscussionsPage() {
   const fetchDiscussions = async () => {
     try {
       setIsLoading(true);
-      const token = await getToken();
-      
-      const response = await fetch('http://localhost:3000/api/discussions', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
+      // Public endpoint - no auth required
+      const response = await fetch('http://localhost:3000/api/discussions');
       
       if (!response.ok) {
         throw new Error(`Error fetching discussions: ${response.status}`);
       }
       
       const data = await response.json();
-      setDiscussions(data);
+      setDiscussions(data.discussions);
+
       setError(null);
     } catch (error) {
       console.error('Error fetching discussions:', error);
@@ -50,12 +45,15 @@ export function DiscussionsPage() {
   };
 
   useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      fetchDiscussions();
-    }
-  }, [isLoaded, isSignedIn]);
+    fetchDiscussions();
+  }, []);
 
   const handleSubmitDiscussion = async (data) => {
+    if (!isSignedIn) {
+      setError('Please sign in to create a discussion');
+      return;
+    }
+
     try {
       setIsLoading(true);
       const token = await getToken();
@@ -75,7 +73,7 @@ export function DiscussionsPage() {
       }
 
       const result = await response.json();
-      setDiscussions(prevDiscussions => [...prevDiscussions, result]);
+      setDiscussions(prevDiscussions => Array.isArray(prevDiscussions) ? [...prevDiscussions, result] : [result]);
       setShowNewDiscussion(false);
       setError(null);
     } catch (err) {
@@ -85,17 +83,6 @@ export function DiscussionsPage() {
     }
   };
 
-  if (!isLoaded || !isSignedIn) {
-    return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Alert severity="warning">
-          <AlertTitle>Authentication Required</AlertTitle>
-          Please sign in to access discussions.
-        </Alert>
-      </Container>
-    );
-  }
-
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box sx={{ width: '100%' }}>
@@ -104,13 +91,22 @@ export function DiscussionsPage() {
             Discussions
           </Typography>
           
-          <Button
-            variant={showNewDiscussion ? "outlined" : "contained"}
-            startIcon={showNewDiscussion ? null : <AddCircleIcon />}
-            onClick={() => setShowNewDiscussion(!showNewDiscussion)}
-          >
-            {showNewDiscussion ? 'Cancel' : 'New Discussion'}
-          </Button>
+          {isSignedIn ? (
+            <Button
+              variant={showNewDiscussion ? "outlined" : "contained"}
+              startIcon={showNewDiscussion ? null : <AddCircleIcon />}
+              onClick={() => setShowNewDiscussion(!showNewDiscussion)}
+            >
+              {showNewDiscussion ? 'Cancel' : 'New Discussion'}
+            </Button>
+          ) : (
+            <Button
+              variant="contained"
+              onClick={() => window.location.href = '/sign-in'}
+            >
+              Sign in to Start Discussion
+            </Button>
+          )}
         </Box>
 
         {showNewDiscussion && (
@@ -140,7 +136,7 @@ export function DiscussionsPage() {
               No discussions found
             </Typography>
             <Typography color="text.secondary">
-              Be the first to start a conversation!
+              {isSignedIn ? 'Be the first to start a conversation!' : 'Sign in to start the first discussion!'}
             </Typography>
           </Paper>
         ) : (
