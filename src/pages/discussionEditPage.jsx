@@ -4,7 +4,6 @@ import { useAuth } from '@clerk/clerk-react';
 import {
   Container,
   Box,
-  Typography,
   CircularProgress,
   Alert,
   Button,
@@ -32,10 +31,6 @@ export function DiscussionEditPage() {
         }
 
         const data = await response.json();
-
-        // Debugging: Log the user IDs
-        console.log('Fetched discussion userId:', data.userId);
-        console.log('Authenticated userId:', userId);
 
         setDiscussion(data);
       } catch (error) {
@@ -67,7 +62,7 @@ export function DiscussionEditPage() {
       }
 
       // Navigate back to the discussion view page after successful update
-      navigate(`/discussions/${id}`);
+      navigate(`/discussions/view/${id}`);
     } catch (err) {
       setError(err.message || 'Failed to update discussion. Please try again.');
     }
@@ -78,11 +73,11 @@ export function DiscussionEditPage() {
       <Box sx={{ mb: 3 }}>
         <Button
           startIcon={<ArrowLeft size={18} />}
-          onClick={() => navigate(`/discussions/${id}`)}
+          onClick={() => navigate(-1)}
           variant="text"
           color="inherit"
         >
-          Back to discussion
+          Back to discussions
         </Button>
       </Box>
 
@@ -96,9 +91,6 @@ export function DiscussionEditPage() {
         </Alert>
       ) : (
         <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
-          <Typography variant="h5" gutterBottom>
-            Edit Discussion
-          </Typography>
           <DiscussionForm
             onSubmit={handleSubmit}
             initialValues={discussion}

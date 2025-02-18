@@ -212,7 +212,7 @@ router.post('/:id/replies', requireAuth(), async (req, res) => {
   try {
     const { userId } = getAuth(req);
     const { content } = req.body;
-    
+
     if (!content) {
       return res.status(400).json({ message: 'Reply content is required' });
     }
@@ -221,7 +221,7 @@ router.post('/:id/replies', requireAuth(), async (req, res) => {
     if (!discussion) {
       return res.status(404).json({ message: 'Discussion not found' });
     }
-    
+
     const newReply = {
       content,
       author: userId,
@@ -231,17 +231,10 @@ router.post('/:id/replies', requireAuth(), async (req, res) => {
 
     discussion.replies.push(newReply);
     await discussion.save();
-    
-    const userIds = new Set([discussion.author, userId]);
-    const userDetails = await getMultipleUserDetails([...userIds]);
 
-    // Return only the new reply with populated author
-    const populatedReply = {
-      ...newReply,
-      author: userDetails[userId]
-    };
-
-    res.status(201).json(populatedReply);
+    // Return the newly created reply with its ID
+    const createdReply = discussion.replies[discussion.replies.length - 1];
+    res.status(201).json(createdReply);
   } catch (error) {
     res.status(500).json({ message: `Error posting reply: ${error.message}` });
   }
@@ -258,12 +251,12 @@ router.put('/:id/replies/:replyId', requireAuth(), async (req, res) => {
       return res.status(404).json({ message: 'Discussion not found' });
     }
     
+    // Find the reply in the replies array using the subdocument method
     const reply = discussion.replies.id(req.params.replyId);
     if (!reply) {
       return res.status(404).json({ message: 'Reply not found' });
     }
     
-    // Check if user is the reply author
     if (reply.author !== userId) {
       return res.status(403).json({ message: 'Not authorized to edit this reply' });
     }
@@ -284,6 +277,7 @@ router.put('/:id/replies/:replyId', requireAuth(), async (req, res) => {
   }
 });
 
+
 // Delete reply - protected route
 router.delete('/:id/replies/:replyId', requireAuth(), async (req, res) => {
   try {
@@ -294,16 +288,17 @@ router.delete('/:id/replies/:replyId', requireAuth(), async (req, res) => {
       return res.status(404).json({ message: 'Discussion not found' });
     }
     
+    // Find the reply in the replies array using the subdocument method
     const reply = discussion.replies.id(req.params.replyId);
     if (!reply) {
       return res.status(404).json({ message: 'Reply not found' });
     }
     
-    // Check if user is the reply author
     if (reply.author !== userId) {
       return res.status(403).json({ message: 'Not authorized to delete this reply' });
     }
     
+    // Remove the reply using MongoDB's subdocument pull method
     discussion.replies.pull(req.params.replyId);
     await discussion.save();
     
@@ -312,6 +307,7 @@ router.delete('/:id/replies/:replyId', requireAuth(), async (req, res) => {
     res.status(500).json({ message: `Error deleting reply: ${error.message}` });
   }
 });
+
 
 // Like/unlike a discussion - protected route
 router.post('/:id/like', requireAuth(), async (req, res) => {
@@ -353,6 +349,7 @@ router.post('/:id/replies/:replyId/like', requireAuth(), async (req, res) => {
       return res.status(404).json({ message: 'Discussion not found' });
     }
     
+    // Find the reply in the replies array using the subdocument method
     const reply = discussion.replies.id(req.params.replyId);
     if (!reply) {
       return res.status(404).json({ message: 'Reply not found' });
@@ -367,6 +364,7 @@ router.post('/:id/replies/:replyId/like', requireAuth(), async (req, res) => {
     
     await discussion.save();
     
+    // Get author details for the modified reply
     const authorDetails = await getUserDetails(reply.author);
     
     res.json({
@@ -377,6 +375,8 @@ router.post('/:id/replies/:replyId/like', requireAuth(), async (req, res) => {
     res.status(500).json({ message: `Error liking reply: ${error.message}` });
   }
 });
+
+
 
 // Get discussions by tag - public route
 router.get('/tags/:tag', async (req, res) => {

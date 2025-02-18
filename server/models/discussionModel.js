@@ -20,7 +20,7 @@ const replySchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   }
-});
+},{ _id: true });
 
 const discussionSchema = new mongoose.Schema({
   title: {
