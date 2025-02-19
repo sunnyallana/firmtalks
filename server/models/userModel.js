@@ -1,4 +1,3 @@
-// userModel.js
 import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
@@ -20,6 +19,10 @@ const userSchema = new mongoose.Schema({
     unique: true,
     trim: true,
     minlength: 3
+  },
+  profileImageUrl: {
+    type: String,
+    default: ''
   },
   // Metrics
   totalLikes: {

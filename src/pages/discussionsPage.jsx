@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { SignInButton, useAuth } from '@clerk/clerk-react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Container,
@@ -214,12 +214,11 @@ export function DiscussionsPage() {
               {showNewDiscussion ? 'Cancel' : 'New Discussion'}
             </Button>
           ) : (
-            <Button
-              variant="contained"
-              onClick={() => navigate('/sign-in')}
-            >
-              Sign in to Start Discussion
-            </Button>
+              <SignInButton mode="modal">
+                  <Button variant="contained" className="flex items-center">
+                    <span>Sign In to start discussion</span>
+                  </Button>
+              </SignInButton>
           )}
         </Box>
 

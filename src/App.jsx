@@ -1,15 +1,22 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { Navbar } from './components/layout/navbar';
 import { useTheme } from './lib/theme';
-import { SignIn, SignUp, SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
 import { MalwareScannerPage } from './pages/malwareScannerPage';
 import { DiscussionsPage } from './pages/discussionsPage';
 import { PlatformStatisticsPage } from './pages/platformStatisticsPage';
 import { ThemeProvider, createTheme, CssBaseline, Button, Typography, Box, Container } from '@mui/material';
+import {ClerkProvider} from '@clerk/clerk-react'
+import { dark } from '@clerk/themes'
 
 
 function App() {
+  const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+
+  if (!PUBLISHABLE_KEY) {
+    throw new Error('Add your Clerk Publishable Key to the .env.local file')
+  }
+
   const { isDark } = useTheme();
 
   const muiTheme = createTheme({
@@ -66,6 +73,7 @@ function App() {
   }, [isDark]);
 
   return (
+  <ClerkProvider appearance={{baseTheme: dark,}}  publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
     <ThemeProvider theme={muiTheme}>
       <CssBaseline />
       <Router>
@@ -108,8 +116,8 @@ function App() {
                     }}>
                       <Button 
                         variant="contained" 
-                        component="a" 
-                        href="/scanner" 
+                        component={Link} 
+                        to="/scanner" 
                         size="large"
                         sx={{ px: 4, py: 1.5 }}
                       >
@@ -117,8 +125,8 @@ function App() {
                       </Button>
                       <Button 
                         variant="outlined" 
-                        component="a" 
-                        href="/discussions" 
+                        component={Link} 
+                        to="/discussions" 
                         size="large"
                         sx={{ px: 4, py: 1.5 }}
                       >
@@ -129,9 +137,6 @@ function App() {
                 </Container>
               }
             />
-
-            <Route path="sign-in" element={<SignIn />} />
-            <Route path="sign-up" element={<SignUp />} />
 
             {/* Protected Routes */}
             <Route
@@ -158,6 +163,7 @@ function App() {
         </div>
       </Router>
     </ThemeProvider>
+  </ClerkProvider>
   );
 }
 

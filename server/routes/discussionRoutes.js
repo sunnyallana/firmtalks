@@ -7,28 +7,11 @@ import { clerkClient, requireAuth, getAuth } from '@clerk/express';
 
 const router = express.Router();
 
-// Helper function to get user details from Clerk
-async function getUserDetails(userId) {
-  try {
-    const user = await clerkClient.users.getUser(userId);
-    return {
-      id: user.id,
-      username: user.username || user.firstName,
-      profileImageUrl: user.profileImageUrl,
-      firstName: user.firstName,
-      lastName: user.lastName
-    };
-  } catch (error) {
-    console.error(`Error fetching user ${userId}:`, error);
-    return { id: userId, username: 'Unknown User' };
-  }
-}
-
 // Get all discussions - public route
 router.get('/', async (req, res) => {
   try {
     const discussions = await Discussion.find()
-      .populate('author', 'username email clerkId')
+      .populate('author', 'username email clerkId profileImageUrl')
       .sort({ createdAt: -1 });
 
     // Get like counts
@@ -59,7 +42,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const discussion = await Discussion.findById(req.params.id)
-      .populate('author', 'username email clerkId');
+      .populate('author', 'username email clerkId profileImageUrl');
 
     if (!discussion) {
       return res.status(404).json({ message: 'Discussion not found' });
@@ -114,7 +97,8 @@ router.post('/', requireAuth(), async (req, res) => {
       user = await User.create({
         clerkId: userId,
         email: clerkUser.emailAddresses[0].emailAddress,
-        username: clerkUser.username || clerkUser.firstName
+        username: clerkUser.username || clerkUser.firstName,
+        profileImageUrl: clerkUser.imageUrl
       });
     }
 
@@ -164,7 +148,8 @@ router.post('/:targetType/:id/like', requireAuth(), async (req, res) => {
       user = await User.create({
         clerkId: userId,
         email: clerkUser.emailAddresses[0].emailAddress,
-        username: clerkUser.username || clerkUser.firstName
+        username: clerkUser.username || clerkUser.firstName,
+        profileImageUrl: clerkUser.imageUrl
       });
     }
 
@@ -249,7 +234,7 @@ router.put('/:id', requireAuth(), async (req, res) => {
     await discussion.save();
 
     const populatedDiscussion = await Discussion.findById(discussion._id)
-      .populate('author', 'username email clerkId');
+      .populate('author', 'username email clerkId profileImageUrl');
 
     res.json(populatedDiscussion);
   } catch (error) {
@@ -293,7 +278,7 @@ router.get('/tags/:tag', async (req, res) => {
   try {
     const tag = req.params.tag.toLowerCase();
     const discussions = await Discussion.find({ tags: tag })
-      .populate('author', 'username email clerkId')
+      .populate('author', 'username email clerkId profileImageUrl')
       .sort({ createdAt: -1 });
 
     // Get like counts
@@ -337,7 +322,8 @@ router.post('/:id/replies', requireAuth(), async (req, res) => {
       user = await User.create({
         clerkId: userId,
         email: clerkUser.emailAddresses[0].emailAddress,
-        username: clerkUser.username || clerkUser.firstName
+        username: clerkUser.username || clerkUser.firstName,
+        profileImageUrl: clerkUser.imageUrl
       });
     }
 
@@ -364,7 +350,7 @@ router.post('/:id/replies', requireAuth(), async (req, res) => {
     await user.save();
 
     const populatedReply = await Reply.findById(reply._id)
-      .populate('author', 'username email clerkId');
+      .populate('author', 'username email clerkId profileImageUrl');
 
     res.status(201).json(populatedReply);
   } catch (error) {
@@ -406,7 +392,7 @@ router.put('/:discussionId/replies/:replyId', requireAuth(), async (req, res) =>
     await reply.save();
 
     const populatedReply = await Reply.findById(replyId)
-      .populate('author', 'username email clerkId');
+      .populate('author', 'username email clerkId profileImageUrl');
 
     res.json(populatedReply);
   } catch (error) {

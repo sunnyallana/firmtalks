@@ -49,7 +49,6 @@ export function Navbar() {
             <ThemeToggle />
             
             <SignedOut>
-              {/* FIX: Use SignInButton correctly by providing a custom UI element */}
               <div className="hidden md:block">
                 <SignInButton mode="modal">
                   <Button variant="ghost" className="flex items-center">
