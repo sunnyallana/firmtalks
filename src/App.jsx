@@ -7,8 +7,7 @@ import { MalwareScannerPage } from './pages/malwareScannerPage';
 import { DiscussionsPage } from './pages/discussionsPage';
 import { PlatformStatisticsPage } from './pages/platformStatisticsPage';
 import { ThemeProvider, createTheme, CssBaseline, Button, Typography, Box, Container } from '@mui/material';
-import { DiscussionViewPage } from './pages/discussionViewPage';
-import { DiscussionEditPage } from './pages/discussionEditPage';
+
 
 function App() {
   const { isDark } = useTheme();
@@ -133,8 +132,6 @@ function App() {
 
             <Route path="sign-in" element={<SignIn />} />
             <Route path="sign-up" element={<SignUp />} />
-            <Route path="/discussions/view/:id" element={<DiscussionViewPage />} />
-            <Route path="/discussions/edit/:id" element={<DiscussionEditPage />} />
 
             {/* Protected Routes */}
             <Route

@@ -1,3 +1,4 @@
+// userModel.js
 import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
@@ -19,6 +20,19 @@ const userSchema = new mongoose.Schema({
     unique: true,
     trim: true,
     minlength: 3
+  },
+  // Metrics
+  totalLikes: {
+    type: Number,
+    default: 0
+  },
+  totalMalwareScans: {
+    type: Number,
+    default: 0
+  },
+  totalReplies: {
+    type: Number,
+    default: 0
   },
   reputation: {
     type: Number,

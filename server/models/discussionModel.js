@@ -1,26 +1,5 @@
+// discussionModel.js
 import mongoose from 'mongoose';
-
-const replySchema = new mongoose.Schema({
-  content: {
-    type: String,
-    required: true,
-  },
-  author: {
-    type: String,
-    required: true,
-  },
-  likes: [{
-    type: String,
-  }],
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-  }
-},{ _id: true });
 
 const discussionSchema = new mongoose.Schema({
   title: {
@@ -34,17 +13,22 @@ const discussionSchema = new mongoose.Schema({
     minLength: 30,
   },
   author: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
     required: true,
   },
   tags: [{
     type: String,
     trim: true,
   }],
-  likes: [{
-    type: String,
-  }],
-  replies: [replySchema],
+  likesCount: {
+    type: Number,
+    default: 0
+  },
+  repliesCount: {
+    type: Number,
+    default: 0
+  },
   createdAt: {
     type: Date,
     default: Date.now,
