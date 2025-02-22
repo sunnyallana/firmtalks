@@ -19,18 +19,20 @@ function App() {
   }
 
   const { isDark } = useTheme();
+  
+  const primaryColor = 'hsl(217.6, 62.6%, 46.1%)';
 
   const muiTheme = createTheme({
     palette: {
       mode: isDark ? 'dark' : 'light',
       primary: {
-        main: '#8ecdf8',
+        main: primaryColor,
       },
       secondary: {
-        main: '#60a5fa',
+        main: primaryColor,
       },
       background: {
-        default: isDark ? '#0f172a' : '#ffffff',
+        default: isDark ? '#0f172a' : '#f2f2f2',
         paper: isDark ? '#1e293b' : '#f8fafc',
       },
     },
@@ -42,7 +44,7 @@ function App() {
       h1: {
         fontWeight: 800,
         letterSpacing: '-0.025em',
-        textShadow: isDark ? '0 0 20px rgba(142, 205, 248, 0.3)' : 'none',
+        textShadow: isDark ? `0 0 20px ${primaryColor}4D` : 'none',
       },
       h2: {
         fontWeight: 800,
@@ -72,9 +74,11 @@ function App() {
             padding: '12px 28px',
           },
           contained: {
-            boxShadow: isDark ? '0 0 20px rgba(142, 205, 248, 0.2)' : 'none',
+            background: primaryColor,
+            boxShadow: isDark ? `0 0 20px ${primaryColor}33` : 'none',
             '&:hover': {
-              boxShadow: isDark ? '0 0 30px rgba(142, 205, 248, 0.3)' : 'none',
+              background: 'hsl(217.6, 62.6%, 41%)',
+              boxShadow: isDark ? `0 0 30px ${primaryColor}4D` : 'none',
               transform: 'translateY(-2px)',
               transition: 'all 0.3s ease',
             },
@@ -157,7 +161,7 @@ function App() {
                           variant="h1"
                           sx={{
                             fontSize: { xs: '3rem', sm: '4rem', md: '5rem' },
-                            color: '#8ecdf8',
+                            color: primaryColor,
                             mb: 3,
                             position: 'relative',
                             '&::after': {
@@ -165,7 +169,7 @@ function App() {
                               position: 'absolute',
                               width: '100px',
                               height: '4px',
-                              background: 'linear-gradient(90deg, #8ecdf8, transparent)',
+                              background: `linear-gradient(90deg, ${primaryColor}, transparent)`,
                               bottom: '-16px',
                               left: '50%',
                               transform: 'translateX(-50%)',
@@ -218,16 +222,16 @@ function App() {
                                 position: 'relative',
                                 overflow: 'hidden',
                                 '&:hover': {
-                                  borderColor: '#8ecdf8',
-                                  boxShadow: isDark ? '0 8px 32px rgba(142, 205, 248, 0.15)' : '0 8px 32px rgba(0,0,0,0.1)',
+                                  borderColor: primaryColor,
+                                  boxShadow: isDark ? `0 8px 32px ${primaryColor}26` : '0 8px 32px rgba(0,0,0,0.1)',
                                   '& .icon-wrapper': {
                                     transform: 'translateY(-2px)',
-                                    color: '#8ecdf8',
+                                    color: primaryColor,
                                   },
                                 },
                               }}
                             >
-                              <Box className="icon-wrapper" sx={{ color: 'primary.main', mb: 3, transition: 'all 0.3s ease' }}>
+                              <Box className="icon-wrapper" sx={{ color: primaryColor, mb: 3, transition: 'all 0.3s ease' }}>
                                 {card.icon}
                               </Box>
                               <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
@@ -236,7 +240,7 @@ function App() {
                               <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
                                 {card.description}
                               </Typography>
-                              <Box sx={{ display: 'flex', alignItems: 'center', color: 'primary.main', mt: 'auto' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', color: primaryColor, mt: 'auto' }}>
                                 <Typography variant="button">Learn More</Typography>
                                 <ChevronRight size={20} />
                               </Box>
@@ -250,7 +254,7 @@ function App() {
                         variants={itemVariants}
                         className="text-center py-10"
                       >
-                        <Button
+                        <Button 
                           variant="contained"
                           component={Link}
                           to="/scanner"
@@ -259,9 +263,9 @@ function App() {
                             px: 8,
                             py: 3,
                             fontSize: '1.25rem',
-                            background: isDark ? 'linear-gradient(135deg, #8ecdf8 0%, #60a5fa 100%)' : '#8ecdf8',
+                            background: primaryColor,
                             '&:hover': {
-                              background: isDark ? 'linear-gradient(135deg, #60a5fa 0%, #8ecdf8 100%)' : '#60a5fa',
+                              background: 'hsl(217.6, 62.6%, 41%)',
                             },
                           }}
                         >
