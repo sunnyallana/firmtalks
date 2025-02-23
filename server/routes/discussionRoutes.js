@@ -50,7 +50,7 @@ router.get('/:id', async (req, res) => {
 
     // Get replies for this discussion
     const replies = await Reply.find({ discussion: req.params.id })
-      .populate('author', 'username email clerkId')
+      .populate('author', 'username email clerkId profileImageUrl')
       .sort({ createdAt: 1 });
 
     // Get like counts for discussion and replies

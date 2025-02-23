@@ -1,13 +1,11 @@
-// src/components/dashboard/dashboard-charts.jsx
 import React from 'react';
-import { Grid, Paper, Typography, Box, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Paper, Typography, useMediaQuery, useTheme, Stack } from '@mui/material';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line, CartesianGrid } from 'recharts';
 
 export function DashboardCharts() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // Sample data for the charts
   const discussionsByCategory = [
     { name: 'Firmware', value: 35 },
     { name: 'Security', value: 25 },
@@ -35,162 +33,166 @@ export function DashboardCharts() {
   const SCAN_COLORS = ['#4CAF50', '#FFC107', '#F44336'];
 
   return (
-    <Grid container spacing={3}>
-      <Grid item xs={12} md={6}>
-        <Paper
-          elevation={2}
-          sx={{
-            p: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            height: 350,
-            borderRadius: 2,
-          }}
-        >
-          <Typography variant="h6" component="h3" gutterBottom>
-            Monthly Activity
-          </Typography>
-          <Box sx={{ height: '100%', pt: 1 }}>
-            <ResponsiveContainer width="100%" height="85%">
-              <LineChart data={monthlyActivity}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="discussions"
-                  stroke={theme.palette.primary.main}
-                  activeDot={{ r: 8 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="scans"
-                  stroke={theme.palette.success.main}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </Box>
-        </Paper>
-      </Grid>
+    <Stack spacing={3} sx={{ width: '100%' }}>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
+        <Box sx={{ width: '100%', height: 400 }}>
+          <Paper
+            elevation={2}
+            sx={{
+              p: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              borderRadius: 2,
+            }}
+          >
+            <Typography variant="h6" component="h3" gutterBottom>
+              Monthly Activity
+            </Typography>
+            <Box sx={{ flexGrow: 1 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={monthlyActivity}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="discussions"
+                    stroke={theme.palette.primary.main}
+                    activeDot={{ r: 8 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="scans"
+                    stroke={theme.palette.success.main}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </Box>
+          </Paper>
+        </Box>
 
-      <Grid item xs={12} md={6}>
-        <Paper
-          elevation={2}
-          sx={{
-            p: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            height: 350,
-            borderRadius: 2,
-          }}
-        >
-          <Typography variant="h6" component="h3" gutterBottom>
-            Discussions by Category
-          </Typography>
-          <Box sx={{ height: '100%', pt: 1 }}>
-            <ResponsiveContainer width="100%" height="85%">
-              <PieChart>
-                <Pie
-                  data={discussionsByCategory}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={isMobile ? 40 : 70}
-                  outerRadius={isMobile ? 60 : 90}
-                  paddingAngle={5}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+        <Box sx={{ width: '100%', height: 400 }}>
+          <Paper
+            elevation={2}
+            sx={{
+              p: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              borderRadius: 2,
+            }}
+          >
+            <Typography variant="h6" component="h3" gutterBottom>
+              Discussions by Category
+            </Typography>
+            <Box sx={{ flexGrow: 1 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={discussionsByCategory}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={isMobile ? 40 : 70}
+                    outerRadius={isMobile ? 60 : 90}
+                    paddingAngle={5}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {discussionsByCategory.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </Box>
+          </Paper>
+        </Box>
+      </Stack>
+
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
+        <Box sx={{ width: '100%', height: 400 }}>
+          <Paper
+            elevation={2}
+            sx={{
+              p: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              borderRadius: 2,
+            }}
+          >
+            <Typography variant="h6" component="h3" gutterBottom>
+              Top Contributors
+            </Typography>
+            <Box sx={{ flexGrow: 1 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={[
+                    { name: 'Alex', posts: 23 },
+                    { name: 'Maria', posts: 21 },
+                    { name: 'John', posts: 18 },
+                    { name: 'Sarah', posts: 15 },
+                    { name: 'David', posts: 12 },
+                  ]}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
-                  {discussionsByCategory.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </Box>
-        </Paper>
-      </Grid>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="posts" fill={theme.palette.primary.main} />
+                </BarChart>
+              </ResponsiveContainer>
+            </Box>
+          </Paper>
+        </Box>
 
-      <Grid item xs={12} md={6}>
-        <Paper
-          elevation={2}
-          sx={{
-            p: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            height: 350,
-            borderRadius: 2,
-          }}
-        >
-          <Typography variant="h6" component="h3" gutterBottom>
-            Top Contributors
-          </Typography>
-          <Box sx={{ height: '100%', pt: 1 }}>
-            <ResponsiveContainer width="100%" height="85%">
-              <BarChart
-                data={[
-                  { name: 'Alex', posts: 23 },
-                  { name: 'Maria', posts: 21 },
-                  { name: 'John', posts: 18 },
-                  { name: 'Sarah', posts: 15 },
-                  { name: 'David', posts: 12 },
-                ]}
-                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="posts" fill={theme.palette.primary.main} />
-              </BarChart>
-            </ResponsiveContainer>
-          </Box>
-        </Paper>
-      </Grid>
-
-      <Grid item xs={12} md={6}>
-        <Paper
-          elevation={2}
-          sx={{
-            p: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            height: 350,
-            borderRadius: 2,
-          }}
-        >
-          <Typography variant="h6" component="h3" gutterBottom>
-            Scan Results
-          </Typography>
-          <Box sx={{ height: '100%', pt: 1 }}>
-            <ResponsiveContainer width="100%" height="85%">
-              <PieChart>
-                <Pie
-                  data={scanResults}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={isMobile ? 60 : 90}
-                  dataKey="value"
-                  label={({ name, value, percent }) =>
-                    `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
-                  }
-                >
-                  {scanResults.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={SCAN_COLORS[index % SCAN_COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </Box>
-        </Paper>
-      </Grid>
-    </Grid>
+        <Box sx={{ width: '100%', height: 400 }}>
+          <Paper
+            elevation={2}
+            sx={{
+              p: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              borderRadius: 2,
+            }}
+          >
+            <Typography variant="h6" component="h3" gutterBottom>
+              Scan Results
+            </Typography>
+            <Box sx={{ flexGrow: 1 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={scanResults}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={isMobile ? 60 : 90}
+                    dataKey="value"
+                    label={({ name, value, percent }) =>
+                      `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
+                    }
+                  >
+                    {scanResults.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={SCAN_COLORS[index % SCAN_COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </Box>
+          </Paper>
+        </Box>
+      </Stack>
+    </Stack>
   );
 }

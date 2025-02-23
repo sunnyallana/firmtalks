@@ -1,25 +1,29 @@
 export const socketHandler = (io) => {
-    io.on('connection', (socket) => {
-      console.log('Client connected:', socket.id);
-  
-      socket.on('join_discussion', (discussionId) => {
-        socket.join(`discussion:${discussionId}`);
-      });
-  
-      socket.on('leave_discussion', (discussionId) => {
-        socket.leave(`discussion:${discussionId}`);
-      });
-  
-      socket.on('new_reply', (data) => {
-        socket.to(`discussion:${data.discussionId}`).emit('reply_received', data);
-      });
-  
-      socket.on('discussion_liked', (data) => {
-        socket.to(`discussion:${data.discussionId}`).emit('like_updated', data);
-      });
-  
-      socket.on('disconnect', () => {
-        console.log('Client disconnected:', socket.id);
-      });
+  io.on('connection', (socket) => {
+    console.log('A user connected:', socket.id);
+
+    socket.on('joinDiscussion', (discussionId) => {
+      socket.join(discussionId);
+      console.log(`User ${socket.id} joined discussion ${discussionId}`);
     });
-  };
+
+    socket.on('newReply', (data) => {
+      const { discussionId, reply } = data;
+      io.to(discussionId).emit('newReply', reply);
+    });
+
+    socket.on('likeDiscussion', (data) => {
+      const { discussionId, likesCount } = data;
+      io.to(discussionId).emit('likeDiscussion', { discussionId, likesCount });
+    });
+
+    socket.on('likeReply', (data) => {
+      const { discussionId, replyId, likesCount } = data;
+      io.to(discussionId).emit('likeReply', { replyId, likesCount });
+    });
+
+    socket.on('disconnect', () => {
+      console.log('User disconnected:', socket.id);
+    });
+  });
+};
