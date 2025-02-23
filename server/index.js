@@ -9,7 +9,6 @@ import { clerkMiddleware } from '@clerk/express'
 import discussionRoutes from './routes/discussionRoutes.js';
 import clerkWebhook from './routes/clerkWebhook.js';
 
-
 dotenv.config();
 
 connectDB();

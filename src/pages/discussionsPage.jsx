@@ -77,7 +77,6 @@ export function DiscussionsPage() {
       let url = 'http://localhost:3000/api/discussions';
       let method = 'POST';
       
-      // If editing an existing discussion
       if (editingDiscussion) {
         url = `http://localhost:3000/api/discussions/${editingDiscussion._id}`;
         method = 'PUT';
@@ -324,7 +323,6 @@ export function DiscussionList({ discussions, onDeleteDiscussion, onEditDiscussi
 
       const result = await response.json();
       
-      // Update the reply's like count in the local state
       setDiscussion(prev => {
         if (!prev) return null;
         return {
@@ -589,7 +587,7 @@ export function DiscussionList({ discussions, onDeleteDiscussion, onEditDiscussi
                   color="primary.main"
                   sx={{ fontWeight: 'medium' }}
                   component={Link}
-                  to={`/users/${discussionItem.author?.id}`}
+                  to={`/users/${discussionItem.author?.clerkId}`}
                 >
                   {discussionItem.author?.username || 'Unknown User'}
                 </Typography>
@@ -718,6 +716,8 @@ export function DiscussionList({ discussions, onDeleteDiscussion, onEditDiscussi
                                     variant="body2"
                                     color="primary.main"
                                     sx={{ fontWeight: 'medium' }}
+                                    component={Link}
+                                    to={`/users/${reply.author?.clerkId}`}
                                   >
                                     {reply.author?.username || 'Unknown User'}
                                   </Typography>
