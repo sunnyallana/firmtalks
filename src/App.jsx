@@ -5,11 +5,13 @@ import { useTheme } from './lib/theme';
 import { MalwareScannerPage } from './pages/malwareScannerPage';
 import { DiscussionsPage } from './pages/discussionsPage';
 import { PlatformStatisticsPage } from './pages/platformStatisticsPage';
+import { UserStatsPage } from './pages/userStatsPage';
 import { ThemeProvider, createTheme, CssBaseline, Button, Typography, Box, Container } from '@mui/material';
 import { ClerkProvider } from '@clerk/clerk-react';
 import { dark } from '@clerk/themes';
 import { motion } from 'framer-motion';
 import { Shield, MessageCircle, BarChart3, ChevronRight } from 'lucide-react';
+
 
 function App() {
   const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -280,6 +282,7 @@ function App() {
               <Route path="/statistics" element={<PlatformStatisticsPage />} />
               <Route path="/scanner" element={<MalwareScannerPage />} />
               <Route path="/discussions" element={<DiscussionsPage />} />
+              <Route path="/users/:clerkId" element={<UserStatsPage />} />
             </Routes>
           </div>
         </Router>

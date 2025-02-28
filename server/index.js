@@ -8,6 +8,7 @@ import connectDB from './db.js';
 import { clerkMiddleware } from '@clerk/express'
 import discussionRoutes from './routes/discussionRoutes.js';
 import clerkWebhook from './routes/clerkWebhook.js';
+import userRoutes from './routes/userRoutes.js';
 
 dotenv.config();
 
@@ -27,6 +28,8 @@ app.use(express.json());
 app.use(clerkMiddleware());
 
 app.use('/api/discussions', discussionRoutes);
+app.use('/api/users', userRoutes);
+
 app.use('/webhook', clerkWebhook);
 
 socketHandler(io);
