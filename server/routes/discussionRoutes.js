@@ -124,6 +124,9 @@ router.post('/', requireAuth(), async (req, res) => {
       repliesCount: 0
     };
 
+    const io = req.app.get('io');
+    io.emit('new-discussion', populatedDiscussion);
+
     res.status(201).json(populatedDiscussion);
   } catch (error) {
     res.status(500).json({ message: `Error creating discussion: ${error.message}` });
@@ -187,6 +190,17 @@ router.post('/:targetType/:id/like', requireAuth(), async (req, res) => {
     await target.save();
     await user.save();
 
+    const io = req.app.get('io');
+    io.emit('like-update', {
+      targetModel,
+      targetId: id,
+      discussionId: target.discussion,
+      likesCount: target.likesCount,
+      userId: user._id.toString(),
+      action: existingLike ? 'unlike' : 'like'
+    });
+
+
     res.json({ 
       likesCount: target.likesCount,
       liked: !existingLike 
@@ -236,6 +250,9 @@ router.put('/:id', requireAuth(), async (req, res) => {
     const populatedDiscussion = await Discussion.findById(discussion._id)
       .populate('author', 'username email clerkId profileImageUrl');
 
+    const io = req.app.get('io');
+    io.emit('update-discussion', populatedDiscussion);
+
     res.json(populatedDiscussion);
   } catch (error) {
     res.status(500).json({ message: `Error updating discussion: ${error.message}` });
@@ -267,6 +284,10 @@ router.delete('/:id', requireAuth(), async (req, res) => {
     });
 
     await Discussion.findByIdAndDelete(req.params.id);
+    
+    const io = req.app.get('io');
+    io.emit('delete-discussion', req.params.id);
+    
     res.json({ message: 'Discussion and associated content deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: `Error deleting discussion: ${error.message}` });
@@ -352,6 +373,9 @@ router.post('/:id/replies', requireAuth(), async (req, res) => {
     const populatedReply = await Reply.findById(reply._id)
       .populate('author', 'username email clerkId profileImageUrl');
 
+    const io = req.app.get('io');
+    io.emit('new-reply', { discussionId: req.params.id, reply: populatedReply });
+
     res.status(201).json(populatedReply);
   } catch (error) {
     res.status(500).json({ message: `Error posting reply: ${error.message}` });
@@ -394,6 +418,10 @@ router.put('/:discussionId/replies/:replyId', requireAuth(), async (req, res) =>
     const populatedReply = await Reply.findById(replyId)
       .populate('author', 'username email clerkId profileImageUrl');
 
+    const io = req.app.get('io');
+    io.emit('update-reply', { discussionId: req.params.discussionId, reply: populatedReply });
+
+    
     res.json(populatedReply);
   } catch (error) {
     res.status(500).json({ message: `Error updating reply: ${error.message}` });
@@ -445,6 +473,9 @@ router.delete('/:discussionId/replies/:replyId', requireAuth(), async (req, res)
 
     // Delete the reply
     await Reply.findByIdAndDelete(replyId);
+
+    const io = req.app.get('io');
+    io.emit('delete-reply', { discussionId: req.params.discussionId, replyId: req.params.replyId });
 
     res.json({ message: 'Reply deleted successfully' });
   } catch (error) {

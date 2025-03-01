@@ -7,6 +7,8 @@ import { clerkMiddleware } from '@clerk/express'
 import discussionRoutes from './routes/discussionRoutes.js';
 import clerkWebhook from './routes/clerkWebhook.js';
 import userRoutes from './routes/userRoutes.js';
+import { Server } from 'socket.io';
+
 
 dotenv.config();
 
@@ -14,6 +16,13 @@ connectDB();
 
 const app = express();
 const httpServer = createServer(app);
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: '*',
+  }
+});
+app.set('io', io); 
 
 app.use(cors());
 app.use(express.json());

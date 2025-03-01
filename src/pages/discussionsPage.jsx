@@ -31,6 +31,8 @@ import { formatDistanceToNow } from 'date-fns';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import MessageIcon from '@mui/icons-material/Message';
 import { DiscussionForm } from '../components/discussions/discussion-form';
+import { io } from 'socket.io-client';
+
 
 const defaultAvatar = "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
 
@@ -42,6 +44,43 @@ export function DiscussionsPage() {
   const [error, setError] = useState(null);
   const [editingDiscussion, setEditingDiscussion] = useState(null);
   const theme = useTheme();
+  const [socket, setSocket] = useState(null);
+
+
+  useEffect(() => {
+    const newSocket = io('http://localhost:3000');
+    setSocket(newSocket);
+  
+    newSocket.on('new-discussion', (newDiscussion) => {
+      setDiscussions(prev => [newDiscussion, ...prev]);
+    });
+  
+    newSocket.on('update-discussion', (updatedDiscussion) => {
+      setDiscussions(prev => prev.map(d => d._id === updatedDiscussion._id ? updatedDiscussion : d));
+    });
+  
+    newSocket.on('delete-discussion', (deletedId) => {
+      setDiscussions(prev => prev.filter(d => d._id !== deletedId));
+    });
+
+    newSocket.on('like-update', (data) => {
+      if (data.targetModel === 'Discussion') {
+        setDiscussions(prev => prev.map(d => 
+          d._id === data.targetId ? { ...d, likesCount: data.likesCount } : d
+        ));
+      }
+    });
+  
+    return () => newSocket.disconnect();
+  }, []);
+
+  const handleUpdateRepliesCount = (discussionId, delta) => {
+    setDiscussions(prev => prev.map(d => {
+      if (d._id === discussionId) return { ...d, repliesCount: d.repliesCount + delta };
+      return d;
+    }));
+  };
+
 
   useEffect(() => {
     fetchDiscussions();
@@ -101,6 +140,8 @@ export function DiscussionsPage() {
   
       const result = await response.json();
       
+      // Note to Self: Uncomment if socket is not used
+      /*
       if (editingDiscussion) {
         setDiscussions(prevDiscussions => 
           prevDiscussions.map(d => d._id === result._id ? result : d)
@@ -109,6 +150,7 @@ export function DiscussionsPage() {
       } else {
         setDiscussions(prevDiscussions => [result, ...prevDiscussions]);
       }
+      */
       
       setShowNewDiscussion(false);
       setError(null);
@@ -138,12 +180,17 @@ export function DiscussionsPage() {
           }
         });
 
+        // Note to Self: Uncomment if socket is not used
+        /*
         if (response.ok) {
           setDiscussions(prevDiscussions => prevDiscussions.filter(discussion => discussion._id !== id));
-        } else {
+        } 
+        else {
           const errorData = await response.json();
           throw new Error(errorData.message || 'Failed to delete discussion');
         }
+        */
+
       } catch (error) {
         console.error('Error deleting discussion:', error);
         setError(error.message || 'Failed to delete discussion. Please try again.');
@@ -172,6 +219,8 @@ export function DiscussionsPage() {
 
       const result = await response.json();
       
+      // Note to Self: Uncomment if socket is not used
+      /*
       setDiscussions(prevDiscussions => 
         prevDiscussions.map(discussion => 
           discussion._id === id 
@@ -179,6 +228,9 @@ export function DiscussionsPage() {
             : discussion
         )
       );
+      */
+
+
     } catch (error) {
       console.error('Error liking discussion:', error);
       setError('Failed to like discussion. Please try again.');
@@ -261,6 +313,8 @@ export function DiscussionsPage() {
             onEditDiscussion={handleEditDiscussion}
             onLikeDiscussion={handleLikeDiscussion}
             currentUserId={userId}
+            socket={socket}
+            onUpdateRepliesCount={handleUpdateRepliesCount}
           />
         )}
       </Box>
@@ -268,7 +322,7 @@ export function DiscussionsPage() {
   );
 }
 
-export function DiscussionList({ discussions, onDeleteDiscussion, onEditDiscussion, onLikeDiscussion, currentUserId }) {
+export function DiscussionList({ discussions, onDeleteDiscussion, onEditDiscussion, onLikeDiscussion, currentUserId, socket, onUpdateRepliesCount }) {
   const { getToken, isSignedIn } = useAuth();
   const [expandedDiscussionId, setExpandedDiscussionId] = useState(null);
   const [discussion, setDiscussion] = useState(null);
@@ -277,6 +331,66 @@ export function DiscussionList({ discussions, onDeleteDiscussion, onEditDiscussi
   const [replyErrors, setReplyErrors] = useState({});
   const [editingReply, setEditingReply] = useState(null);
   const theme = useTheme();
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleLikeUpdate = (data) => {
+      if (data.targetModel === 'Reply' && expandedDiscussionId === data.discussionId) {
+        setDiscussion(prev => ({
+          ...prev,
+          replies: prev.replies.map(reply => 
+            reply._id === data.targetId ? { ...reply, likesCount: data.likesCount } : reply
+          )
+        }));
+      }
+    };
+
+    const handleNewReply = ({ discussionId, reply }) => {
+      if (expandedDiscussionId === discussionId) {
+        setDiscussion(prev => ({
+          ...prev,
+          replies: [...prev.replies, reply],
+          repliesCount: prev.repliesCount + 1
+        }));
+      }
+      onUpdateRepliesCount(discussionId, 1);
+    };
+
+    const handleUpdateReply = ({ discussionId, reply }) => {
+      if (expandedDiscussionId === discussionId) {
+        setDiscussion(prev => ({
+          ...prev,
+          replies: prev.replies.map(r => r._id === reply._id ? reply : r)
+        }));
+      }
+    };
+
+    const handleDeleteReply = ({ discussionId, replyId }) => {
+      if (expandedDiscussionId === discussionId) {
+        setDiscussion(prev => ({
+          ...prev,
+          replies: prev.replies.filter(r => r._id !== replyId),
+          repliesCount: prev.repliesCount - 1
+        }));
+      }
+      onUpdateRepliesCount(discussionId, -1);
+    };
+
+    socket.on('new-reply', handleNewReply);
+    socket.on('update-reply', handleUpdateReply);
+    socket.on('delete-reply', handleDeleteReply);
+    socket.on('like-update', handleLikeUpdate);
+
+    return () => {
+      socket.off('new-reply', handleNewReply);
+      socket.off('update-reply', handleUpdateReply);
+      socket.off('delete-reply', handleDeleteReply);
+      socket.off('like-update', handleLikeUpdate);
+    };
+  }, [socket, expandedDiscussionId, onUpdateRepliesCount]);
+
+
 
   // Fetch full discussion details
   const fetchDiscussionDetail = async (id) => {
@@ -322,6 +436,9 @@ export function DiscussionList({ discussions, onDeleteDiscussion, onEditDiscussi
 
       const result = await response.json();
       
+
+      // Note to Self: Uncomment if socket is not used
+      /*
       setDiscussion(prev => {
         if (!prev) return null;
         return {
@@ -333,6 +450,9 @@ export function DiscussionList({ discussions, onDeleteDiscussion, onEditDiscussi
           )
         };
       });
+      */
+
+
     } catch (error) {
       console.error('Error liking reply:', error);
       setReplyErrors(prev => ({...prev, [discussion._id]: 'Failed to like reply'}));
@@ -370,7 +490,8 @@ export function DiscussionList({ discussions, onDeleteDiscussion, onEditDiscussi
 
       const newReply = await response.json();
       
-      // Update the discussion with the new reply
+      // Note to Self: Uncomment if socket is not used
+      /*
       if (editingReply) {
         setDiscussion(prev => ({
           ...prev,
@@ -386,6 +507,7 @@ export function DiscussionList({ discussions, onDeleteDiscussion, onEditDiscussi
           repliesCount: prev.repliesCount + 1
         }));
       }
+      */
       
       setReplyContent('');
       setReplyErrors({});
@@ -413,12 +535,15 @@ export function DiscussionList({ discussions, onDeleteDiscussion, onEditDiscussi
           throw new Error(errorData.message || 'Failed to delete reply');
         }
 
-        // Update the discussion without the deleted reply
+        // Note to Self: Uncomment if socket is not used
+        /*
         setDiscussion(prev => ({
           ...prev,
           replies: prev.replies.filter(reply => reply._id !== replyId),
           repliesCount: prev.repliesCount - 1
         }));
+        */
+
       } catch (error) {
         console.error('Error deleting reply:', error);
         setReplyErrors(prev => ({...prev, [discussion._id]: 'Failed to delete reply'}));
