@@ -98,7 +98,7 @@ export function DiscussionsPage() {
 
   useEffect(() => {
     fetchDiscussions();
-  }, [sortType]);
+  }, [sortType, discussions]);
 
   const fetchDiscussions = async () => {
     try {
