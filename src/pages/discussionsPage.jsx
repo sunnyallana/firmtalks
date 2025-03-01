@@ -16,9 +16,14 @@ import {
   Tooltip,
   TextField,
   Divider,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
   useTheme
 } from '@mui/material';
 import {
+  Link as LinkIcon,
   MessageSquare,
   ThumbsUp,
   Clock,
@@ -28,6 +33,11 @@ import {
   Send,
   Share2
 } from 'lucide-react';
+import {
+  LinkedIn as LinkedInIcon,
+  WhatsApp as WhatsAppIcon,
+  Twitter as TwitterIcon,
+} from '@mui/icons-material';
 import { formatDistanceToNow } from 'date-fns';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import MessageIcon from '@mui/icons-material/Message';
@@ -350,7 +360,50 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
   const [editingReply, setEditingReply] = useState(null);
   const theme = useTheme();
   const navigate = useNavigate();
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedDiscussion, setSelectedDiscussion] = useState(null);
 
+  const handleShareMenuOpen = (event, discussion) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedDiscussion(discussion);
+  };
+  
+  const handleShareMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedDiscussion(null);
+  };
+
+  const handleSocialShare = (platform) => {
+    if (!selectedDiscussion) return;
+  
+    const discussionUrl = `${window.location.origin}/discussions/${selectedDiscussion._id}?viewFirst=true`;
+    const shareText = encodeURIComponent(`Check out this discussion: ${selectedDiscussion.title}`);
+    
+    let url = '';
+    switch (platform) {
+      case 'whatsapp':
+        url = `https://wa.me/?text=${shareText}%0A%0A${encodeURIComponent(discussionUrl)}`;
+        break;
+      case 'linkedin':
+        url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(discussionUrl)}`;
+        break;
+      case 'twitter':
+        url = `https://twitter.com/intent/tweet?text=${shareText}&url=${encodeURIComponent(discussionUrl)}`;
+        break;
+      default:
+        return;
+    }
+  
+    window.open(url, '_blank', 'noopener,noreferrer');
+    handleShareMenuClose();
+  };
+
+  const handleCopyLink = () => {
+    const url = `${window.location.origin}/discussions/${selectedDiscussion._id}?viewFirst=true`;
+    navigator.clipboard.writeText(url);
+    handleShareMenuClose();
+  };
+  
   useEffect(() => {
     if (expandedDiscussionId) {
       fetchDiscussionDetail(expandedDiscussionId);
@@ -630,23 +683,47 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
 
               
                 <Box>
-                  <Tooltip title="Copy discussion link">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const url = `${window.location.origin}/discussions/${discussionItem._id}?viewFirst=true`;
-                        navigator.clipboard.writeText(url)
-                          .then(() => {
-                            console.log('URL copied to clipboard');
-                          })
-                          .catch(err => console.error('Failed to copy URL:', err));
-                      }}
-                      sx={{ color: 'text.secondary' }}
-                    >
-                      <Share2 size={18} />
-                    </IconButton>
-                  </Tooltip>
+                <Tooltip title="Share this discussion">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => handleShareMenuOpen(e, discussionItem)}
+                    sx={{ color: 'text.secondary' }}
+                  >
+                    <Share2 size={18} />
+                  </IconButton>
+                </Tooltip>
+
+                <Menu
+                  anchorEl={anchorEl}
+                  open={Boolean(anchorEl)}
+                  onClose={handleShareMenuClose}
+                  onClick={handleShareMenuClose}
+                >
+                  <MenuItem onClick={handleCopyLink}>
+                    <ListItemIcon>
+                      <LinkIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>Copy discussion link</ListItemText>
+                  </MenuItem>
+                  <MenuItem onClick={() => handleSocialShare('whatsapp')}>
+                    <ListItemIcon>
+                      <WhatsAppIcon fontSize="small" style={{ color: '#25D366' }} />
+                    </ListItemIcon>
+                    <ListItemText>Share on WhatsApp</ListItemText>
+                  </MenuItem>
+                  <MenuItem onClick={() => handleSocialShare('linkedin')}>
+                    <ListItemIcon>
+                      <LinkedInIcon fontSize="small" style={{ color: '#0A66C2' }} />
+                    </ListItemIcon>
+                    <ListItemText>Share on LinkedIn</ListItemText>
+                  </MenuItem>
+                  <MenuItem onClick={() => handleSocialShare('twitter')}>
+                    <ListItemIcon>
+                      <TwitterIcon fontSize="small" style={{ color: '#1DA1F2' }} />
+                    </ListItemIcon>
+                    <ListItemText>Share on Twitter</ListItemText>
+                  </MenuItem>
+                </Menu>
 
                   {isAuthor && (
                   <>
