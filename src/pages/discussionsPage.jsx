@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { SignInButton, useAuth } from '@clerk/clerk-react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
@@ -59,6 +59,7 @@ export function DiscussionsPage() {
   const { discussionId } = useParams();
   const [searchParams] = useSearchParams();
   const viewFirst = searchParams.get('viewFirst') === 'true';
+  const [sortType, setSortType] = useState('recent');
 
 
   useEffect(() => {
@@ -95,15 +96,14 @@ export function DiscussionsPage() {
     }));
   };
 
-
   useEffect(() => {
     fetchDiscussions();
-  }, []);
+  }, [sortType]);
 
   const fetchDiscussions = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://localhost:3000/api/discussions');
+      const response = await fetch(`http://localhost:3000/api/discussions?sort=${sortType}`);
       if (!response.ok) throw new Error(`Error fetching discussions: ${response.status}`);
       const data = await response.json();
 
@@ -277,27 +277,41 @@ export function DiscussionsPage() {
           <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
             Discussions
           </Typography>
-          {isSignedIn ? (
-            <Button
-              variant={showNewDiscussion ? "outlined" : "contained"}
-              startIcon={showNewDiscussion ? null : <AddCircleIcon />}
-              onClick={() => {
-                if (editingDiscussion) {
-                  cancelEdit();
-                } else {
-                  setShowNewDiscussion(!showNewDiscussion);
-                }
-              }}
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <TextField
+              select
+              label="Sort by"
+              value={sortType}
+              onChange={(e) => setSortType(e.target.value)}
+              sx={{ minWidth: 120 }}
             >
-              {showNewDiscussion ? 'Cancel' : 'New Discussion'}
-            </Button>
-          ) : (
-              <SignInButton mode="modal">
-                  <Button variant="contained" className="flex items-center">
-                    <span>Sign In to start discussion</span>
-                  </Button>
-              </SignInButton>
-          )}
+              <MenuItem value="recent">Most Recent</MenuItem>
+              <MenuItem value="likes">Most Likes</MenuItem>
+            </TextField>
+            
+            {isSignedIn ? (
+              <Button
+                variant={showNewDiscussion ? "outlined" : "contained"}
+                startIcon={showNewDiscussion ? null : <AddCircleIcon />}
+                onClick={() => {
+                  if (editingDiscussion) {
+                    cancelEdit();
+                  } else {
+                    setShowNewDiscussion(!showNewDiscussion);
+                  }
+                }}
+              >
+                {showNewDiscussion ? 'Cancel' : 'New Discussion'}
+              </Button>
+            ) : (
+                <SignInButton mode="modal">
+                    <Button variant="contained" className="flex items-center">
+                      <span>Sign In to start discussion</span>
+                    </Button>
+                </SignInButton>
+            )}
+            </Box>
         </Box>
 
         {showNewDiscussion && (
@@ -362,6 +376,13 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedDiscussion, setSelectedDiscussion] = useState(null);
+  const [replySort, setReplySort] = useState('recent');
+  const replySortRef = useRef(replySort);
+
+  useEffect(() => {
+    replySortRef.current = replySort;
+  }, [replySort]);
+  
 
   const handleShareMenuOpen = (event, discussion) => {
     setAnchorEl(event.currentTarget);
@@ -410,7 +431,7 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
     } else {
       setDiscussion(null);
     }
-  }, [expandedDiscussionId]);
+  }, [expandedDiscussionId, replySort]);
 
 
   useEffect(() => {
@@ -418,24 +439,25 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
 
     const handleLikeUpdate = (data) => {
       if (data.targetModel === 'Reply' && expandedDiscussionId === data.discussionId) {
-        setDiscussion(prev => ({
-          ...prev,
-          replies: prev.replies.map(reply => 
+        setDiscussion(prev => {
+          const updatedReplies = prev.replies.map(reply => 
             reply._id === data.targetId ? { ...reply, likesCount: data.likesCount } : reply
-          )
-        }));
+          );
+          const sortedReplies = sortReplies(updatedReplies, replySortRef.current);
+          return { ...prev, replies: sortedReplies };
+        });
       }
     };
 
     const handleNewReply = ({ discussionId, reply }) => {
       if (expandedDiscussionId === discussionId) {
-        setDiscussion(prev => ({
-          ...prev,
-          replies: [...prev.replies, reply],
-          repliesCount: prev.repliesCount + 1
-        }));
+        setDiscussion(prev => {
+          const newReplies = [...prev.replies, reply];
+          const sortedReplies = sortReplies(newReplies, replySortRef.current);
+          return { ...prev, replies: sortedReplies, repliesCount: prev.repliesCount + 1 };
+        });
+        onUpdateRepliesCount(discussionId, 1);
       }
-      onUpdateRepliesCount(discussionId, 1);
     };
 
     const handleUpdateReply = ({ discussionId, reply }) => {
@@ -477,7 +499,7 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
   const fetchDiscussionDetail = async (id) => {
     setIsLoadingDetail(true);
     try {
-      const response = await fetch(`http://localhost:3000/api/discussions/${id}`);
+      const response = await fetch(`http://localhost:3000/api/discussions/${id}?replySort=${replySort}`);
       if (!response.ok) throw new Error(`Error fetching discussion: ${response.status}`);
       const data = await response.json();
       setDiscussion(data);
@@ -641,6 +663,15 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
     setReplyContent('');
   };
 
+  const sortReplies = (replies, sortType) => {
+    if (sortType === 'recent') {
+      return [...replies].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else if (sortType === 'likes') {
+      return [...replies].sort((a, b) => b.likesCount - a.likesCount);
+    }
+    return replies;
+  };
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {discussions.map((discussionItem) => {
@@ -681,7 +712,6 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
                 {discussionItem.title}
               </Typography>
 
-              
                 <Box>
                 <Tooltip title="Share this discussion">
                   <IconButton
@@ -698,7 +728,9 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
                   open={Boolean(anchorEl)}
                   onClose={handleShareMenuClose}
                   onClick={handleShareMenuClose}
+                  sx={{ '& .MuiPaper-root': { maxWidth: 400 } }}
                 >
+
                   <MenuItem onClick={handleCopyLink}>
                     <ListItemIcon>
                       <LinkIcon fontSize="small" />
@@ -885,11 +917,22 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
                     
                     <Divider sx={{ mb: 3 }} />
                     
-                    {/* Replies Section */}
-                    <Typography variant="h6" sx={{ mb: 2 }}>
-                      Replies ({discussion.repliesCount || 0})
-                    </Typography>
-                    
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Typography variant="h6">
+                        Replies ({discussion.repliesCount || 0})
+                      </Typography>
+                      <TextField
+                        select
+                        label="Sort by"
+                        value={replySort}
+                        onChange={(e) => setReplySort(e.target.value)}
+                        sx={{ minWidth: 120 }}
+                      >
+                        <MenuItem value="recent">Most Recent</MenuItem>
+                        <MenuItem value="likes">Most Likes</MenuItem>
+                      </TextField>
+                    </Box>
+                                        
                     {replyErrors[discussion._id] && (
                       <Alert severity="error" sx={{ mb: 2 }}>
                         {replyErrors[discussion._id]}

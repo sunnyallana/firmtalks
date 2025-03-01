@@ -10,28 +10,51 @@ const router = express.Router();
 // Get all discussions - public route
 router.get('/', async (req, res) => {
   try {
+    const sortType = req.query.sort || 'recent';
+    
+    // Get all discussions with their authors
     const discussions = await Discussion.find()
-      .populate('author', 'username email clerkId profileImageUrl')
-      .sort({ createdAt: -1 });
-
-    // Get like counts
+      .populate('author', 'username email clerkId profileImageUrl');
+    
+    // Get like counts for all discussions
     const discussionIds = discussions.map(d => d._id);
     const likeCounts = await Like.aggregate([
       { $match: { targetModel: 'Discussion', target: { $in: discussionIds } } },
       { $group: { _id: '$target', count: { $sum: 1 } } }
     ]);
-
+    
     // Create a map of discussion ID to like count
     const likeCountMap = likeCounts.reduce((acc, curr) => {
       acc[curr._id] = curr.count;
       return acc;
     }, {});
-
+    
+    // Get replies count for each discussion
+    const repliesCounts = await Reply.aggregate([
+      { $match: { discussion: { $in: discussionIds } } },
+      { $group: { _id: '$discussion', count: { $sum: 1 } } }
+    ]);
+    
+    // Create a map of discussion ID to replies count
+    const repliesCountMap = repliesCounts.reduce((acc, curr) => {
+      acc[curr._id] = curr.count;
+      return acc;
+    }, {});
+    
+    // Populate the discussions with like counts and replies counts
     const populatedDiscussions = discussions.map(discussion => ({
       ...discussion.toObject(),
-      likesCount: likeCountMap[discussion._id] || 0
+      likesCount: likeCountMap[discussion._id] || 0,
+      repliesCount: repliesCountMap[discussion._id] || 0
     }));
-
+    
+    // Sort the discussions based on the requested sort type
+    if (sortType === 'recent') {
+      populatedDiscussions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else if (sortType === 'likes') {
+      populatedDiscussions.sort((a, b) => b.likesCount - a.likesCount);
+    }
+    
     res.json({ discussions: populatedDiscussions });
   } catch (error) {
     res.status(500).json({ message: `Error fetching discussions: ${error.message}` });
@@ -41,39 +64,52 @@ router.get('/', async (req, res) => {
 // Get single discussion with replies - public route
 router.get('/:id', async (req, res) => {
   try {
+    const replySort = req.query.replySort || 'recent';
+    
+    // Get the discussion with its author
     const discussion = await Discussion.findById(req.params.id)
       .populate('author', 'username email clerkId profileImageUrl');
-
+      
     if (!discussion) {
       return res.status(404).json({ message: 'Discussion not found' });
     }
-
+    
     // Get replies for this discussion
     const replies = await Reply.find({ discussion: req.params.id })
-      .populate('author', 'username email clerkId profileImageUrl')
-      .sort({ createdAt: 1 });
-
+      .populate('author', 'username email clerkId profileImageUrl');
+      
     // Get like counts for discussion and replies
     const targetIds = [discussion._id, ...replies.map(r => r._id)];
     const likes = await Like.find({
       target: { $in: targetIds }
     });
-
+    
     // Create maps for like counts
     const likeCountMap = likes.reduce((acc, like) => {
       acc[like.target] = (acc[like.target] || 0) + 1;
       return acc;
     }, {});
-
+    
+    // Map and sort replies based on the specified sort type
+    const populatedReplies = replies.map(reply => ({
+      ...reply.toObject(),
+      likesCount: likeCountMap[reply._id] || 0
+    }));
+    
+    if (replySort === 'recent') {
+      populatedReplies.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else if (replySort === 'likes') {
+      populatedReplies.sort((a, b) => b.likesCount - a.likesCount);
+    }
+    
+    // Create the final response object
     const populatedDiscussion = {
       ...discussion.toObject(),
       likesCount: likeCountMap[discussion._id] || 0,
-      replies: replies.map(reply => ({
-        ...reply.toObject(),
-        likesCount: likeCountMap[reply._id] || 0
-      }))
+      repliesCount: replies.length,
+      replies: populatedReplies
     };
-
+    
     res.json(populatedDiscussion);
   } catch (error) {
     res.status(500).json({ message: `Error fetching discussion: ${error.message}` });
@@ -298,28 +334,51 @@ router.delete('/:id', requireAuth(), async (req, res) => {
 router.get('/tags/:tag', async (req, res) => {
   try {
     const tag = req.params.tag.toLowerCase();
+    const sortType = req.query.sort || 'recent';
+    
+    // Get discussions with the specified tag
     const discussions = await Discussion.find({ tags: tag })
-      .populate('author', 'username email clerkId profileImageUrl')
-      .sort({ createdAt: -1 });
-
+      .populate('author', 'username email clerkId profileImageUrl');
+      
     // Get like counts
     const discussionIds = discussions.map(d => d._id);
     const likeCounts = await Like.aggregate([
       { $match: { targetModel: 'Discussion', target: { $in: discussionIds } } },
       { $group: { _id: '$target', count: { $sum: 1 } } }
     ]);
-
+    
     // Create a map of discussion ID to like count
     const likeCountMap = likeCounts.reduce((acc, curr) => {
       acc[curr._id] = curr.count;
       return acc;
     }, {});
-
+    
+    // Get replies count for each discussion
+    const repliesCounts = await Reply.aggregate([
+      { $match: { discussion: { $in: discussionIds } } },
+      { $group: { _id: '$discussion', count: { $sum: 1 } } }
+    ]);
+    
+    // Create a map of discussion ID to replies count
+    const repliesCountMap = repliesCounts.reduce((acc, curr) => {
+      acc[curr._id] = curr.count;
+      return acc;
+    }, {});
+    
+    // Populate the discussions with like counts and replies counts
     const populatedDiscussions = discussions.map(discussion => ({
       ...discussion.toObject(),
-      likesCount: likeCountMap[discussion._id] || 0
+      likesCount: likeCountMap[discussion._id] || 0,
+      repliesCount: repliesCountMap[discussion._id] || 0
     }));
-
+    
+    // Sort the discussions based on the requested sort type
+    if (sortType === 'recent') {
+      populatedDiscussions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else if (sortType === 'likes') {
+      populatedDiscussions.sort((a, b) => b.likesCount - a.likesCount);
+    }
+    
     res.json({ discussions: populatedDiscussions });
   } catch (error) {
     res.status(500).json({ message: `Error fetching discussions by tag: ${error.message}` });
