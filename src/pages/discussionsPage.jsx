@@ -43,7 +43,7 @@ import AddCircleIcon from '@mui/icons-material/AddCircle';
 import MessageIcon from '@mui/icons-material/Message';
 import { DiscussionForm } from '../components/discussions/discussion-form';
 import { io } from 'socket.io-client';
-
+import { Pagination } from '@mui/material';
 
 const defaultAvatar = "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
 
@@ -60,6 +60,10 @@ export function DiscussionsPage() {
   const [searchParams] = useSearchParams();
   const viewFirst = searchParams.get('viewFirst') === 'true';
   const [sortType, setSortType] = useState('recent');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [totalItems, setTotalItems] = useState(0);
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
 
   useEffect(() => {
@@ -67,7 +71,10 @@ export function DiscussionsPage() {
     setSocket(newSocket);
   
     newSocket.on('new-discussion', (newDiscussion) => {
-      setDiscussions(prev => [newDiscussion, ...prev]);
+      setTotalItems(prev => prev + 1);
+      if (currentPage === 1) {
+        setDiscussions(prev => [newDiscussion, ...prev.slice(0, itemsPerPage - 1)]);
+      }
     });
   
     newSocket.on('update-discussion', (updatedDiscussion) => {
@@ -75,19 +82,34 @@ export function DiscussionsPage() {
     });
   
     newSocket.on('delete-discussion', (deletedId) => {
-      setDiscussions(prev => prev.filter(d => d._id !== deletedId));
+      setTotalItems(prev => prev - 1);
+      setDiscussions(prev => {
+        const updated = prev.filter(d => d._id !== deletedId);
+        
+        if (updated.length === 0 && currentPage > 1) {
+          setCurrentPage(prevPage => prevPage - 1);
+        }
+        return updated;
+      });
     });
 
     newSocket.on('like-update', (data) => {
       if (data.targetModel === 'Discussion') {
-        setDiscussions(prev => prev.map(d => 
-          d._id === data.targetId ? { ...d, likesCount: data.likesCount } : d
-        ));
+        setDiscussions(prev => {
+          const updated = prev.map(d => 
+            d._id === data.targetId ? { ...d, likesCount: data.likesCount } : d
+          );
+          
+          if (sortType === 'likes') {
+            return updated.sort((a, b) => b.likesCount - a.likesCount);
+          }
+          return updated;
+        });
       }
     });
   
     return () => newSocket.disconnect();
-  }, []);
+  }, [currentPage, itemsPerPage, sortType]);
 
   const handleUpdateRepliesCount = (discussionId, delta) => {
     setDiscussions(prev => prev.map(d => {
@@ -98,29 +120,31 @@ export function DiscussionsPage() {
 
   useEffect(() => {
     fetchDiscussions();
-  }, [sortType, discussions]);
+  }, [sortType, currentPage, itemsPerPage]);
+
 
   const fetchDiscussions = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`http://localhost:3000/api/discussions?sort=${sortType}`);
+      const response = await fetch(
+        `http://localhost:3000/api/discussions?sort=${sortType}&page=${currentPage}&limit=${itemsPerPage}`
+      );
       if (!response.ok) throw new Error(`Error fetching discussions: ${response.status}`);
       const data = await response.json();
 
+      setTotalItems(data.totalItems);
+
+      let processedDiscussions = data.discussions || [];
+      
       if (viewFirst && discussionId) {
-        const discussionsArray = data.discussions || [];
-        const reorderedDiscussions = [...discussionsArray];
-        const selectedDiscussionIndex = reorderedDiscussions.findIndex(d => d._id === discussionId);
-        
+        const selectedDiscussionIndex = processedDiscussions.findIndex(d => d._id === discussionId);
         if (selectedDiscussionIndex !== -1) {
-          const selectedDiscussion = reorderedDiscussions.splice(selectedDiscussionIndex, 1)[0];
-          reorderedDiscussions.unshift(selectedDiscussion);
+          const selectedDiscussion = processedDiscussions.splice(selectedDiscussionIndex, 1)[0];
+          processedDiscussions.unshift(selectedDiscussion);
         }
-        
-        setDiscussions(reorderedDiscussions);
-      } else {
-        setDiscussions(data.discussions || []);
       }
+
+      setDiscussions(processedDiscussions);
       setError(null);
     } catch (error) {
       console.error('Error fetching discussions:', error);
@@ -129,7 +153,7 @@ export function DiscussionsPage() {
       setIsLoading(false);
     }
   };
-  
+
   const handleSubmitDiscussion = async (data) => {
     if (!isSignedIn) {
       setError('Please sign in to create a discussion');
@@ -147,6 +171,8 @@ export function DiscussionsPage() {
         url = `http://localhost:3000/api/discussions/${editingDiscussion._id}`;
         method = 'PUT';
       }
+
+      setCurrentPage(1);
       
       const response = await fetch(url, {
         method,
@@ -160,27 +186,17 @@ export function DiscussionsPage() {
           tags: data.tags,
         }),
       });
-  
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || `Error ${editingDiscussion ? 'updating' : 'creating'} discussion: ${response.status}`);
       }
-  
+
       const result = await response.json();
       
-      // Note to Self: Uncomment if socket is not used
-      /*
-      if (editingDiscussion) {
-        setDiscussions(prevDiscussions => 
-          prevDiscussions.map(d => d._id === result._id ? result : d)
-        );
-        setEditingDiscussion(null);
-      } else {
-        setDiscussions(prevDiscussions => [result, ...prevDiscussions]);
-      }
-      */
-      
       setShowNewDiscussion(false);
+      setEditingDiscussion(null);
+      setCurrentPage(1);
       setError(null);
     } catch (err) {
       setError(err.message || `Failed to ${editingDiscussion ? 'update' : 'create'} discussion. Please try again.`);
@@ -246,6 +262,10 @@ export function DiscussionsPage() {
       }
 
       const result = await response.json();
+
+      if (sortType === 'likes') {
+        await fetchDiscussions();
+      }
       
       // Note to Self: Uncomment if socket is not used
       /*
@@ -283,7 +303,10 @@ export function DiscussionsPage() {
               select
               label="Sort by"
               value={sortType}
-              onChange={(e) => setSortType(e.target.value)}
+              onChange={(e) => {
+                setSortType(e.target.value);
+                setCurrentPage(1);
+              }}
               sx={{ minWidth: 120 }}
             >
               <MenuItem value="recent">Most Recent</MenuItem>
@@ -301,18 +324,79 @@ export function DiscussionsPage() {
                     setShowNewDiscussion(!showNewDiscussion);
                   }
                 }}
+                sx={{
+                  whiteSpace: 'nowrap',
+                  minWidth: { xs: 'auto', sm: 164 },
+                  px: { xs: 2, sm: 3 }
+                }}
               >
-                {showNewDiscussion ? 'Cancel' : 'New Discussion'}
+                <Box component="span" sx={{ 
+                  display: { xs: showNewDiscussion ? 'none' : 'block', sm: 'block' },
+                  mr: { xs: 0, sm: 1 }
+                }}>
+                  {showNewDiscussion ? 'Cancel' : 'New Discussion'}
+                </Box>
               </Button>
             ) : (
-                <SignInButton mode="modal">
-                    <Button variant="contained" className="flex items-center">
-                      <span>Sign In to start discussion</span>
-                    </Button>
-                </SignInButton>
+              <SignInButton mode="modal">
+                <Button 
+                  variant="contained" 
+                  sx={{
+                    whiteSpace: 'nowrap',
+                    minWidth: { xs: 'auto', sm: 220 },
+                    px: { xs: 2, sm: 3 }
+                  }}
+                >
+                  <Box component="span" sx={{ display: { xs: 'none', sm: 'block' } }}>
+                    Sign In to start discussion
+                  </Box>
+                  <Box component="span" sx={{ display: { xs: 'block', sm: 'none' } }}>
+                    Sign In
+                  </Box>
+                </Button>
+              </SignInButton>
             )}
             </Box>
         </Box>
+
+        {/* Pagination Controls Top */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
+          <TextField
+            select
+            label="Items per page"
+            value={itemsPerPage}
+            onChange={(e) => {
+              setItemsPerPage(Number(e.target.value));
+              setCurrentPage(1);
+            }}
+            sx={{ minWidth: 120 }}
+          >
+            {[5, 10, 20, 50].map((size) => (
+              <MenuItem key={size} value={size}>{size}</MenuItem>
+            ))}
+          </TextField>
+          
+          <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center' }}>
+            <Pagination
+              count={totalPages}
+              page={currentPage}
+              onChange={(e, page) => {
+                window.scrollTo(0, 0);
+                setCurrentPage(page);
+              }}
+              color="primary"
+              showFirstButton
+              showLastButton
+            />
+          </Box>
+          
+          {totalItems > 0 && (
+            <Typography variant="body2" color="text.secondary">
+              Showing {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems}
+            </Typography>
+          )}
+        </Box>
+
 
         {showNewDiscussion && (
           <Paper elevation={2} sx={{ p: 3, mb: 4, borderRadius: 2 }}>
@@ -360,6 +444,21 @@ export function DiscussionsPage() {
             onUpdateRepliesCount={handleUpdateRepliesCount}
           />
         )}
+
+        {/* Pagination Controls Bottom */}
+        {!isLoading && discussions.length > 0 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+            <Pagination
+              count={totalPages}
+              page={currentPage}
+              onChange={(e, page) => setCurrentPage(page)}
+              color="primary"
+              showFirstButton
+              showLastButton
+            />
+          </Box>
+        )}
+
       </Box>
     </Container>
   );

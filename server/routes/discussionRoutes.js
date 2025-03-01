@@ -10,52 +10,40 @@ const router = express.Router();
 // Get all discussions - public route
 router.get('/', async (req, res) => {
   try {
-    const sortType = req.query.sort || 'recent';
-    
-    // Get all discussions with their authors
-    const discussions = await Discussion.find()
-      .populate('author', 'username email clerkId profileImageUrl');
-    
-    // Get like counts for all discussions
-    const discussionIds = discussions.map(d => d._id);
-    const likeCounts = await Like.aggregate([
-      { $match: { targetModel: 'Discussion', target: { $in: discussionIds } } },
-      { $group: { _id: '$target', count: { $sum: 1 } } }
-    ]);
-    
-    // Create a map of discussion ID to like count
-    const likeCountMap = likeCounts.reduce((acc, curr) => {
-      acc[curr._id] = curr.count;
-      return acc;
-    }, {});
-    
-    // Get replies count for each discussion
-    const repliesCounts = await Reply.aggregate([
-      { $match: { discussion: { $in: discussionIds } } },
-      { $group: { _id: '$discussion', count: { $sum: 1 } } }
-    ]);
-    
-    // Create a map of discussion ID to replies count
-    const repliesCountMap = repliesCounts.reduce((acc, curr) => {
-      acc[curr._id] = curr.count;
-      return acc;
-    }, {});
-    
-    // Populate the discussions with like counts and replies counts
-    const populatedDiscussions = discussions.map(discussion => ({
-      ...discussion.toObject(),
-      likesCount: likeCountMap[discussion._id] || 0,
-      repliesCount: repliesCountMap[discussion._id] || 0
-    }));
-    
-    // Sort the discussions based on the requested sort type
-    if (sortType === 'recent') {
-      populatedDiscussions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    } else if (sortType === 'likes') {
-      populatedDiscussions.sort((a, b) => b.likesCount - a.likesCount);
+    const { sort = 'recent', page = 1, limit = 5 } = req.query;
+    const parsedPage = Math.max(parseInt(page), 1);
+    const parsedLimit = Math.min(Math.max(parseInt(limit), 1), 50);
+    const skip = (parsedPage - 1) * parsedLimit;
+
+    // Sorting logic
+    let sortOptions = {};
+    switch(sort) {
+      case 'recent':
+        sortOptions = { createdAt: -1 };
+        break;
+      case 'likes':
+        sortOptions = { likesCount: -1 };
+        break;
+      default:
+        sortOptions = { createdAt: -1 };
     }
-    
-    res.json({ discussions: populatedDiscussions });
+
+    // Get total count and paginated discussions
+    const total = await Discussion.countDocuments();
+    const totalPages = Math.ceil(total / parsedLimit);
+
+    const discussions = await Discussion.find()
+      .populate('author', 'username email clerkId profileImageUrl')
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(parsedLimit);
+
+    res.json({
+      discussions,
+      totalPages,
+      currentPage: parsedPage,
+      totalItems: total
+    });
   } catch (error) {
     res.status(500).json({ message: `Error fetching discussions: ${error.message}` });
   }
