@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SignInButton, useAuth } from '@clerk/clerk-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -25,7 +25,8 @@ import {
   Edit2,
   Trash2,
   ArrowRight,
-  Send
+  Send,
+  Share2
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
@@ -45,6 +46,9 @@ export function DiscussionsPage() {
   const [editingDiscussion, setEditingDiscussion] = useState(null);
   const theme = useTheme();
   const [socket, setSocket] = useState(null);
+  const { discussionId } = useParams();
+  const [searchParams] = useSearchParams();
+  const viewFirst = searchParams.get('viewFirst') === 'true';
 
 
   useEffect(() => {
@@ -92,7 +96,21 @@ export function DiscussionsPage() {
       const response = await fetch('http://localhost:3000/api/discussions');
       if (!response.ok) throw new Error(`Error fetching discussions: ${response.status}`);
       const data = await response.json();
-      setDiscussions(data.discussions || []);
+
+      if (viewFirst && discussionId) {
+        const discussionsArray = data.discussions || [];
+        const reorderedDiscussions = [...discussionsArray];
+        const selectedDiscussionIndex = reorderedDiscussions.findIndex(d => d._id === discussionId);
+        
+        if (selectedDiscussionIndex !== -1) {
+          const selectedDiscussion = reorderedDiscussions.splice(selectedDiscussionIndex, 1)[0];
+          reorderedDiscussions.unshift(selectedDiscussion);
+        }
+        
+        setDiscussions(reorderedDiscussions);
+      } else {
+        setDiscussions(data.discussions || []);
+      }
       setError(null);
     } catch (error) {
       console.error('Error fetching discussions:', error);
@@ -307,7 +325,8 @@ export function DiscussionsPage() {
             </Typography>
           </Paper>
         ) : (
-          <DiscussionList 
+          <DiscussionList
+            expandedDiscussionId={discussionId}
             discussions={discussions} 
             onDeleteDiscussion={handleDeleteDiscussion}
             onEditDiscussion={handleEditDiscussion}
@@ -322,15 +341,24 @@ export function DiscussionsPage() {
   );
 }
 
-export function DiscussionList({ discussions, onDeleteDiscussion, onEditDiscussion, onLikeDiscussion, currentUserId, socket, onUpdateRepliesCount }) {
+export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDiscussion, onEditDiscussion, onLikeDiscussion, currentUserId, socket, onUpdateRepliesCount}) {
   const { getToken, isSignedIn } = useAuth();
-  const [expandedDiscussionId, setExpandedDiscussionId] = useState(null);
   const [discussion, setDiscussion] = useState(null);
   const [replyContent, setReplyContent] = useState('');
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [replyErrors, setReplyErrors] = useState({});
   const [editingReply, setEditingReply] = useState(null);
   const theme = useTheme();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (expandedDiscussionId) {
+      fetchDiscussionDetail(expandedDiscussionId);
+    } else {
+      setDiscussion(null);
+    }
+  }, [expandedDiscussionId]);
+
 
   useEffect(() => {
     if (!socket) return;
@@ -410,13 +438,12 @@ export function DiscussionList({ discussions, onDeleteDiscussion, onEditDiscussi
 
   const handleViewClick = (id) => {
     if (expandedDiscussionId === id) {
-      setExpandedDiscussionId(null);
-      setDiscussion(null);
+      navigate('/discussions');
     } else {
-      setExpandedDiscussionId(id);
-      fetchDiscussionDetail(id);
+      navigate(`/discussions/${id}`);
     }
   };
+
 
   const handleLikeReply = async (replyId) => {
     if (!isSignedIn || !discussion) return;
@@ -600,8 +627,29 @@ export function DiscussionList({ discussions, onDeleteDiscussion, onEditDiscussi
               >
                 {discussionItem.title}
               </Typography>
-              {isAuthor && (
+
+              
                 <Box>
+                  <Tooltip title="Copy discussion link">
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const url = `${window.location.origin}/discussions/${discussionItem._id}?viewFirst=true`;
+                        navigator.clipboard.writeText(url)
+                          .then(() => {
+                            console.log('URL copied to clipboard');
+                          })
+                          .catch(err => console.error('Failed to copy URL:', err));
+                      }}
+                      sx={{ color: 'text.secondary' }}
+                    >
+                      <Share2 size={18} />
+                    </IconButton>
+                  </Tooltip>
+
+                  {isAuthor && (
+                  <>
                   <Tooltip title="Edit discussion">
                     <IconButton
                       size="small"
@@ -626,8 +674,10 @@ export function DiscussionList({ discussions, onDeleteDiscussion, onEditDiscussi
                       <Trash2 size={18} />
                     </IconButton>
                   </Tooltip>
+                  </>
+                  )}
                 </Box>
-              )}
+              
             </Box>
             
             <Box

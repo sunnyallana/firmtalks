@@ -274,7 +274,7 @@ function App() {
                     />
               <Route path="/statistics" element={<PlatformStatisticsPage />} />
               <Route path="/scanner" element={<MalwareScannerPage />} />
-              <Route path="/discussions" element={<DiscussionsPage />} />
+              <Route path="/discussions/:discussionId?" element={<DiscussionsPage />} />
               <Route path="/users/:clerkId" element={<UserStatsPage />} />
             </Routes>
           </div>
