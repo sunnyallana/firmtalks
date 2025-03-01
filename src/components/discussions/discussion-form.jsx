@@ -2,7 +2,7 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button, TextField, Typography, Paper, Box } from '@mui/material';
+import { Button, TextField, Box } from '@mui/material';
 
 const discussionSchema = z.object({
   title: z.string().min(10, 'Title must be at least 10 characters'),
@@ -21,10 +21,7 @@ export function DiscussionForm({ onSubmit, initialValues = {}, isEditing = false
   });
 
   return (
-    <Paper elevation={3} sx={{ p: 3, maxWidth: 600, mx: 'auto', mt: 4 }}>
-      <Typography variant="h5" gutterBottom>
-        {isEditing ? 'Edit Discussion' : 'Create Discussion'}
-      </Typography>
+    <>
       <form onSubmit={handleSubmit(onSubmit)}>
         <Box sx={{ mb: 3 }}>
           <TextField
@@ -71,6 +68,6 @@ export function DiscussionForm({ onSubmit, initialValues = {}, isEditing = false
           {isSubmitting ? 'Submitting...' : isEditing ? 'Update Discussion' : 'Create Discussion'}
         </Button>
       </form>
-    </Paper>
+    </>
   );
 }

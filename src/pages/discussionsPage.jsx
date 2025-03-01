@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SignInButton, useAuth } from '@clerk/clerk-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -41,7 +41,6 @@ export function DiscussionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingDiscussion, setEditingDiscussion] = useState(null);
-  const navigate = useNavigate();
   const theme = useTheme();
 
   useEffect(() => {
@@ -228,8 +227,8 @@ export function DiscussionsPage() {
             </Typography>
             <DiscussionForm 
               onSubmit={handleSubmitDiscussion} 
-              initialData={editingDiscussion}
-              onCancel={cancelEdit}
+              initialValues={editingDiscussion}
+              isEditing={editingDiscussion !== null}
             />
           </Paper>
         )}

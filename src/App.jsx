@@ -122,13 +122,13 @@ function App() {
     {
       icon: <Shield className="w-10 h-10" />,
       title: "Malware Detection",
-      description: "Advanced firmware scanning to identify potential security threats and vulnerabilities",
+      description: "Advanced firmware scanning to identify potential security vulnerabilities",
       link: "/scanner",
     },
     {
       icon: <MessageCircle className="w-10 h-10" />,
       title: "Expert Discussions",
-      description: "Connect with firmware professionals and share knowledge in our community forums",
+      description: "Connect with firmware professionals and share knowledge in our forums",
       link: "/discussions",
     },
     {
@@ -147,138 +147,131 @@ function App() {
           <div className="min-h-screen bg-gradient-to-b from-background-default to-background-paper">
             <Navbar />
             <Routes>
-              <Route
-                path="/"
-                element={
-                  <Container maxWidth="lg" sx={{ py: { xs: 8, md: 16 } }}>
-                    <motion.div
-                      variants={containerVariants}
-                      initial="hidden"
-                      animate="visible"
-                      className="space-y-20"
-                    >
-                      {/* Hero Section */}
-                      <motion.div variants={itemVariants} className="text-center space-y-8">
-                        <Typography
-                          variant="h1"
-                          sx={{
-                            fontSize: { xs: '3rem', sm: '4rem', md: '5rem' },
-                            color: primaryColor,
-                            mb: 3,
-                            position: 'relative',
-                            '&::after': {
-                              content: '""',
-                              position: 'absolute',
-                              width: '100px',
-                              height: '4px',
-                              background: `linear-gradient(90deg, ${primaryColor}, transparent)`,
-                              bottom: '-16px',
-                              left: '50%',
-                              transform: 'translateX(-50%)',
-                            },
-                          }}
-                        >
-                          FirmTalks
-                        </Typography>
-                        <Typography
-                          variant="h5"
-                          color="text.secondary"
-                          sx={{
-                            maxWidth: '800px',
-                            mx: 'auto',
-                            fontSize: { xs: '1.2rem', sm: '1.4rem' },
-                            lineHeight: 1.8,
-                            opacity: 0.9,
-                          }}
-                        >
-                          Secure your firmware with advanced malware detection and expert community insights.
-                          Your all-in-one platform for firmware security analysis.
-                        </Typography>
-                      </motion.div>
-
-                      {/* Feature Cards */}
-                      <motion.div
-                        variants={containerVariants}
-                        className="grid grid-cols-1 md:grid-cols-3 gap-10"
-                      >
-                        {featureCards.map((card, index) => (
+                    <Route
+                      path="/"
+                      element={
+                        <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 } }}>
                           <motion.div
-                            key={index}
-                            variants={itemVariants}
-                            whileHover={{ scale: 1.03, translateY: -8 }}
-                            className="relative"
+                            variants={containerVariants}
+                            initial="hidden"
+                            animate="visible"
+                            className="space-y-12"
                           >
-                            <Box
-                              component={Link}
-                              to={card.link}
+                            {/* Hero Section */}
+                            <motion.div variants={itemVariants} className="text-center space-y-6">
+                            <Typography
+                              variant="h1"
                               sx={{
-                                display: 'block',
-                                p: 5,
-                                borderRadius: 4,
-                                bgcolor: 'background.paper',
-                                border: '1px solid',
-                                borderColor: 'divider',
-                                textDecoration: 'none',
-                                color: 'text.primary',
-                                transition: 'all 0.3s ease',
+                                fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' },
+                                color: primaryColor,
+                                mb: 2,
                                 position: 'relative',
-                                overflow: 'hidden',
-                                '&:hover': {
-                                  borderColor: primaryColor,
-                                  boxShadow: isDark ? `0 8px 32px ${primaryColor}26` : '0 8px 32px rgba(0,0,0,0.1)',
-                                  '& .icon-wrapper': {
-                                    transform: 'translateY(-2px)',
-                                    color: primaryColor,
-                                  },
+                                '&::after': {
+                                  content: '""',
+                                  position: 'absolute',
+                                  width: '100px',
+                                  height: '4px',
+                                  background: `linear-gradient(90deg, ${primaryColor}, transparent)`,
+                                  bottom: '-16px',
+                                  left: '50%',
+                                  transform: 'translateX(-50%)',
                                 },
+                                textShadow: (theme) => 
+                                  theme.palette.mode === 'dark' ? `0 0 20px ${primaryColor}4D` : 'none',
                               }}
                             >
-                              <Box className="icon-wrapper" sx={{ color: primaryColor, mb: 3, transition: 'all 0.3s ease' }}>
-                                {card.icon}
-                              </Box>
-                              <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
-                                {card.title}
+                              FirmTalks
+                            </Typography>
+                              <Typography
+                                variant="h6"
+                                color="text.secondary"
+                                sx={{
+                                  maxWidth: '800px',
+                                  mx: 'auto',
+                                  fontSize: { xs: '1rem', sm: '1.1rem' },
+                                  lineHeight: 1.6,
+                                }}
+                              >
+                                Secure your firmware with advanced malware detection and expert community insights.
                               </Typography>
-                              <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                                {card.description}
-                              </Typography>
-                              <Box sx={{ display: 'flex', alignItems: 'center', color: primaryColor, mt: 'auto' }}>
-                                <Typography variant="button">Learn More</Typography>
-                                <ChevronRight size={20} />
-                              </Box>
-                            </Box>
+                            </motion.div>
+
+                            {/* Feature Cards */}
+                            <motion.div
+                              variants={containerVariants}
+                              className="grid grid-cols-1 md:grid-cols-3 gap-6"
+                            >
+                              {featureCards.map((card, index) => (
+                                <motion.div
+                                  key={index}
+                                  variants={itemVariants}
+                                  whileHover={{ scale: 1.03, translateY: -8 }}
+                                  className="relative"
+                                >
+                                  <Box
+                                    component={Link}
+                                    to={card.link}
+                                    sx={{
+                                      display: 'block',
+                                      p: 3,
+                                      borderRadius: 4,
+                                      bgcolor: 'background.paper',
+                                      border: '1px solid',
+                                      borderColor: 'divider',
+                                      textDecoration: 'none',
+                                      color: 'text.primary',
+                                      transition: 'all 0.3s ease',
+                                      position: 'relative',
+                                      overflow: 'hidden',
+                                      minHeight: '280px',
+                                      '&:hover': {
+                                        borderColor: primaryColor,
+                                        boxShadow: isDark ? `0 8px 32px ${primaryColor}26` : '0 8px 32px rgba(0,0,0,0.1)',
+                                        '& .icon-wrapper': {
+                                          transform: 'translateY(-2px)',
+                                          color: primaryColor,
+                                        },
+                                      },
+                                    }}
+                                  >
+                                    <Box className="icon-wrapper" sx={{ color: primaryColor, mb: 3, transition: 'all 0.3s ease' }}>
+                                      {card.icon}
+                                    </Box>
+                                    <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
+                                      {card.title}
+                                    </Typography>
+                                    <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                                      {card.description}
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', color: primaryColor, mt: 'auto' }}>
+                                      <Typography variant="button">Learn More</Typography>
+                                      <ChevronRight size={20} />
+                                    </Box>
+                                  </Box>
+                                </motion.div>
+                              ))}
+                            </motion.div>
+
+                            {/* CTA Section */}
+                            <motion.div variants={itemVariants} className="text-center py-6">
+                              <Button 
+                                variant="contained"
+                                component={Link}
+                                to="/scanner"
+                                size="medium"
+                                sx={{
+                                  px: 6,
+                                  py: 2,
+                                  fontSize: '1rem',
+                                }}
+                              >
+                                Start Scanning Now
+                              </Button>
+                            </motion.div>
                           </motion.div>
-                        ))}
-                      </motion.div>
-
-                      {/* CTA Section */}
-                      <motion.div
-                        variants={itemVariants}
-                        className="text-center py-10"
-                      >
-                        <Button 
-                          variant="contained"
-                          component={Link}
-                          to="/scanner"
-                          size="large"
-                          sx={{
-                            px: 8,
-                            py: 3,
-                            fontSize: '1.25rem',
-                            background: primaryColor,
-                            '&:hover': {
-                              background: 'hsl(217.6, 62.6%, 41%)',
-                            },
-                          }}
-                        >
-                          Start Scanning Now
-                        </Button>
-                      </motion.div>
-                    </motion.div>
-                  </Container>
-                }
-              />
-
+                        </Container>
+                      }
+                    />
               <Route path="/statistics" element={<PlatformStatisticsPage />} />
               <Route path="/scanner" element={<MalwareScannerPage />} />
               <Route path="/discussions" element={<DiscussionsPage />} />
