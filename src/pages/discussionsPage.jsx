@@ -378,6 +378,7 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
   const [selectedDiscussion, setSelectedDiscussion] = useState(null);
   const [replySort, setReplySort] = useState('recent');
   const replySortRef = useRef(replySort);
+  const [originalReplies, setOriginalReplies] = useState([]);
 
   useEffect(() => {
     replySortRef.current = replySort;
@@ -430,8 +431,16 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
       fetchDiscussionDetail(expandedDiscussionId);
     } else {
       setDiscussion(null);
+      setOriginalReplies([]);
     }
-  }, [expandedDiscussionId, replySort]);
+  }, [expandedDiscussionId]);
+
+  useEffect(() => {
+    if (discussion && originalReplies.length > 0) {
+      const sortedReplies = sortReplies([...originalReplies], replySort);
+      setDiscussion(prev => ({...prev, replies: sortedReplies}));
+    }
+  }, [replySort, originalReplies]);
 
 
   useEffect(() => {
@@ -439,7 +448,14 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
 
     const handleLikeUpdate = (data) => {
       if (data.targetModel === 'Reply' && expandedDiscussionId === data.discussionId) {
+        setOriginalReplies(prev => {
+          return prev.map(reply => 
+            reply._id === data.targetId ? { ...reply, likesCount: data.likesCount } : reply
+          );
+        });
+        
         setDiscussion(prev => {
+          if (!prev) return null;
           const updatedReplies = prev.replies.map(reply => 
             reply._id === data.targetId ? { ...reply, likesCount: data.likesCount } : reply
           );
@@ -451,7 +467,10 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
 
     const handleNewReply = ({ discussionId, reply }) => {
       if (expandedDiscussionId === discussionId) {
+        setOriginalReplies(prev => [...prev, reply]);
+        
         setDiscussion(prev => {
+          if (!prev) return null;
           const newReplies = [...prev.replies, reply];
           const sortedReplies = sortReplies(newReplies, replySortRef.current);
           return { ...prev, replies: sortedReplies, repliesCount: prev.repliesCount + 1 };
@@ -462,22 +481,36 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
 
     const handleUpdateReply = ({ discussionId, reply }) => {
       if (expandedDiscussionId === discussionId) {
-        setDiscussion(prev => ({
-          ...prev,
-          replies: prev.replies.map(r => r._id === reply._id ? reply : r)
-        }));
+        setOriginalReplies(prev => {
+          return prev.map(r => r._id === reply._id ? reply : r);
+        });
+        
+        setDiscussion(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            replies: prev.replies.map(r => r._id === reply._id ? reply : r)
+          };
+        });
       }
     };
 
     const handleDeleteReply = ({ discussionId, replyId }) => {
       if (expandedDiscussionId === discussionId) {
-        setDiscussion(prev => ({
-          ...prev,
-          replies: prev.replies.filter(r => r._id !== replyId),
-          repliesCount: prev.repliesCount - 1
-        }));
+        setOriginalReplies(prev => {
+          return prev.filter(r => r._id !== replyId);
+        });
+        
+        setDiscussion(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            replies: prev.replies.filter(r => r._id !== replyId),
+            repliesCount: prev.repliesCount - 1
+          };
+        });
+        onUpdateRepliesCount(discussionId, -1);
       }
-      onUpdateRepliesCount(discussionId, -1);
     };
 
     socket.on('new-reply', handleNewReply);
@@ -499,10 +532,14 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
   const fetchDiscussionDetail = async (id) => {
     setIsLoadingDetail(true);
     try {
-      const response = await fetch(`http://localhost:3000/api/discussions/${id}?replySort=${replySort}`);
+      const response = await fetch(`http://localhost:3000/api/discussions/${id}`);
       if (!response.ok) throw new Error(`Error fetching discussion: ${response.status}`);
       const data = await response.json();
-      setDiscussion(data);
+      
+      setOriginalReplies(data.replies || []);
+      
+      const sortedReplies = sortReplies(data.replies || [], replySort);
+      setDiscussion({...data, replies: sortedReplies});
     } catch (error) {
       console.error('Error fetching discussion details:', error);
       setReplyErrors(prev => ({...prev, [id]: 'Failed to load discussion details'}));
@@ -612,6 +649,7 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
       */
       
       setReplyContent('');
+      setEditingReply(null);
       setReplyErrors({});
     } catch (error) {
       console.error('Error posting reply:', error);
@@ -664,6 +702,8 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
   };
 
   const sortReplies = (replies, sortType) => {
+    if (!replies) return [];
+    
     if (sortType === 'recent') {
       return [...replies].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } else if (sortType === 'likes') {
