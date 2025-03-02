@@ -80,7 +80,9 @@ export function DiscussionsPage() {
     });
   
     newSocket.on('update-discussion', (updatedDiscussion) => {
-      setDiscussions(prev => prev.map(d => d._id === updatedDiscussion._id ? updatedDiscussion : d));
+      setDiscussions(prev => prev.map(d => 
+        d._id === updatedDiscussion._id ? updatedDiscussion : d
+      ));
     });
   
     newSocket.on('delete-discussion', (deletedId) => {
@@ -91,8 +93,7 @@ export function DiscussionsPage() {
           setCurrentPage(prevPage => prevPage - 1);
         }
         return updated;
-      });
-      
+      });   
       fetchDiscussions();
     });
 
@@ -520,6 +521,16 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
   useEffect(() => {
     if (!socket) return;
 
+    const handleDiscussionUpdate = (updatedDiscussion) => {
+      if (expandedDiscussionId === updatedDiscussion._id) {
+        setDiscussion(prev => ({
+          ...prev,
+          ...updatedDiscussion,
+          replies: prev?.replies || []
+        }));
+      }
+    };
+
     const handleLikeUpdate = (data) => {
       if (data.targetModel === 'Reply' && expandedDiscussionId === data.discussionId) {
         setOriginalReplies(prev => {
@@ -589,12 +600,14 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
     socket.on('update-reply', handleUpdateReply);
     socket.on('delete-reply', handleDeleteReply);
     socket.on('like-update', handleLikeUpdate);
+    socket.on('update-discussion', handleDiscussionUpdate);
 
     return () => {
       socket.off('new-reply', handleNewReply);
       socket.off('update-reply', handleUpdateReply);
       socket.off('delete-reply', handleDeleteReply);
       socket.off('like-update', handleLikeUpdate);
+      socket.off('update-discussion', handleDiscussionUpdate);
     };
   }, [socket, expandedDiscussionId]);
 
