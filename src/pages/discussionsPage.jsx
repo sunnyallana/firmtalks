@@ -85,7 +85,6 @@ export function DiscussionsPage() {
       setTotalItems(prev => prev - 1);
       setDiscussions(prev => {
         const updated = prev.filter(d => d._id !== deletedId);
-        
         if (updated.length === 0 && currentPage > 1) {
           setCurrentPage(prevPage => prevPage - 1);
         }
@@ -124,13 +123,6 @@ export function DiscussionsPage() {
   
     return () => newSocket.disconnect();
   }, [currentPage, itemsPerPage, sortType]);
-
-  const handleUpdateRepliesCount = (discussionId, delta) => {
-    setDiscussions(prev => prev.map(d => {
-      if (d._id === discussionId) return { ...d, repliesCount: d.repliesCount + delta };
-      return d;
-    }));
-  };
 
   useEffect(() => {
     fetchDiscussions();
@@ -227,7 +219,6 @@ export function DiscussionsPage() {
 
   const handleDeleteDiscussion = async (id) => {
     if (!isSignedIn) return;
-
     if (window.confirm('Are you sure you want to delete this discussion?')) {
       try {
         const token = await getToken();
@@ -237,8 +228,6 @@ export function DiscussionsPage() {
             'Authorization': `Bearer ${token}`
           }
         });
-
-
       } catch (error) {
         console.error('Error deleting discussion:', error);
         setError(error.message || 'Failed to delete discussion. Please try again.');
@@ -247,10 +236,7 @@ export function DiscussionsPage() {
   };
 
   const handleLikeDiscussion = async (id) => {
-    if (!isSignedIn) {
-      setError('Please sign in to like discussions');
-      return;
-    }
+    if (!isSignedIn) return setError('Please sign in to like discussions');
 
     try {
       const token = await getToken();
@@ -260,16 +246,6 @@ export function DiscussionsPage() {
           'Authorization': `Bearer ${token}`
         }
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to like discussion');
-      }
-
-      const result = await response.json();
-
-      if (sortType === 'likes') {
-        await fetchDiscussions();
-      }
       
     } catch (error) {
       console.error('Error liking discussion:', error);
@@ -469,7 +445,6 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
   const [replySort, setReplySort] = useState('recent');
   const replySortRef = useRef(replySort);
   const [originalReplies, setOriginalReplies] = useState([]);
-
   const [replyPage, setReplyPage] = useState(1);
   const [totalReplyPages, setTotalReplyPages] = useState(1);
   const [isLoadingMoreReplies, setIsLoadingMoreReplies] = useState(false);
