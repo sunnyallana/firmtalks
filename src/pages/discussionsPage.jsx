@@ -453,7 +453,6 @@ export function DiscussionsPage() {
             onLikeDiscussion={handleLikeDiscussion}
             currentUserId={userId}
             socket={socket}
-            onUpdateRepliesCount={handleUpdateRepliesCount}
           />
         )}
 
@@ -476,7 +475,7 @@ export function DiscussionsPage() {
   );
 }
 
-export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDiscussion, onEditDiscussion, onLikeDiscussion, currentUserId, socket, onUpdateRepliesCount}) {
+export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDiscussion, onEditDiscussion, onLikeDiscussion, currentUserId, socket}) {
   const { getToken, isSignedIn } = useAuth();
   const [discussion, setDiscussion] = useState(null);
   const [replyContent, setReplyContent] = useState('');
@@ -619,7 +618,6 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
             repliesCount: prev.repliesCount - 1
           };
         });
-        onUpdateRepliesCount(discussionId, -1);
       }
     };
 
@@ -634,7 +632,7 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
       socket.off('delete-reply', handleDeleteReply);
       socket.off('like-update', handleLikeUpdate);
     };
-  }, [socket, expandedDiscussionId, onUpdateRepliesCount]);
+  }, [socket, expandedDiscussionId]);
 
 
 
