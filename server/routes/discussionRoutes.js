@@ -59,10 +59,22 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Discussion not found' });
     }
 
-    // Get replies for this discussion
+    // Parse reply pagination parameters
+    const { replyPage = 1, replyLimit = 10 } = req.query;
+    const parsedReplyPage = Math.max(parseInt(replyPage), 1);
+    const parsedReplyLimit = Math.min(Math.max(parseInt(replyLimit), 1), 50);
+    const replySkip = (parsedReplyPage - 1) * parsedReplyLimit;
+
+    // Get paginated replies
     const replies = await Reply.find({ discussion: req.params.id })
       .populate('author', 'username email clerkId profileImageUrl')
-      .sort({ createdAt: 1 });
+      .sort({ createdAt: 1 })
+      .skip(replySkip)
+      .limit(parsedReplyLimit);
+
+    // Get total replies count
+    const totalReplies = await Reply.countDocuments({ discussion: req.params.id });
+    const totalReplyPages = Math.ceil(totalReplies / parsedReplyLimit);
 
     // Get like counts for discussion and replies
     const targetIds = [discussion._id, ...replies.map(r => r._id)];
@@ -70,7 +82,6 @@ router.get('/:id', async (req, res) => {
       target: { $in: targetIds }
     });
 
-    // Create maps for like counts
     const likeCountMap = likes.reduce((acc, like) => {
       acc[like.target] = (acc[like.target] || 0) + 1;
       return acc;
@@ -79,10 +90,17 @@ router.get('/:id', async (req, res) => {
     const populatedDiscussion = {
       ...discussion.toObject(),
       likesCount: likeCountMap[discussion._id] || 0,
-      replies: replies.map(reply => ({
-        ...reply.toObject(),
-        likesCount: likeCountMap[reply._id] || 0
-      }))
+      replies: {
+        items: replies.map(reply => ({
+          ...reply.toObject(),
+          likesCount: likeCountMap[reply._id] || 0
+        })),
+        pagination: {
+          totalPages: totalReplyPages,
+          currentPage: parsedReplyPage,
+          totalItems: totalReplies
+        }
+      }
     };
 
     res.json(populatedDiscussion);

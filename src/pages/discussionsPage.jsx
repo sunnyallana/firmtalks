@@ -490,6 +490,11 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
   const replySortRef = useRef(replySort);
   const [originalReplies, setOriginalReplies] = useState([]);
 
+  const [replyPage, setReplyPage] = useState(1);
+  const [totalReplyPages, setTotalReplyPages] = useState(1);
+  const [isLoadingMoreReplies, setIsLoadingMoreReplies] = useState(false);
+  const replyLimit = 10;
+
   useEffect(() => {
     replySortRef.current = replySort;
   }, [replySort]);
@@ -538,10 +543,12 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
   
   useEffect(() => {
     if (expandedDiscussionId) {
-      fetchDiscussionDetail(expandedDiscussionId);
+      setReplyPage(1);
+      fetchDiscussionDetail(expandedDiscussionId, 1);
     } else {
       setDiscussion(null);
       setOriginalReplies([]);
+      setTotalReplyPages(1);
     }
   }, [expandedDiscussionId]);
 
@@ -637,24 +644,58 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
 
 
   // Fetch full discussion details
-  const fetchDiscussionDetail = async (id) => {
+  const fetchDiscussionDetail = async (id, page = 1) => {
     setIsLoadingDetail(true);
     try {
-      const response = await fetch(`http://localhost:3000/api/discussions/${id}`);
+      const response = await fetch(`http://localhost:3000/api/discussions/${id}?replyPage=${page}&replyLimit=${replyLimit}`);
       if (!response.ok) throw new Error(`Error fetching discussion: ${response.status}`);
       const data = await response.json();
       
-      setOriginalReplies(data.replies || []);
+      // Handle paginated replies structure
+      const replies = data.replies.items || [];
       
-      const sortedReplies = sortReplies(data.replies || [], replySort);
-      setDiscussion({...data, replies: sortedReplies});
+      if (page === 1) {
+        // First page - replace all replies
+        setOriginalReplies(replies);
+      } else {
+        // Subsequent pages - append to existing replies
+        setOriginalReplies(prev => [...prev, ...replies]);
+      }
+      
+      // Set total pages from pagination data
+      setTotalReplyPages(data.replies.pagination.totalPages || 1);
+      
+      // Update the discussion with sorted replies
+      const allReplies = page === 1 ? replies : [...originalReplies, ...replies];
+      const sortedReplies = sortReplies(allReplies, replySort);
+      
+      setDiscussion(prev => {
+        // If it's the first page or no previous discussion, use the new data
+        if (page === 1 || !prev) {
+          return {...data, replies: sortedReplies};
+        }
+        // Otherwise, update existing discussion with new replies
+        return {...prev, replies: sortedReplies};
+      });
     } catch (error) {
       console.error('Error fetching discussion details:', error);
       setReplyErrors(prev => ({...prev, [id]: 'Failed to load discussion details'}));
     } finally {
       setIsLoadingDetail(false);
+      setIsLoadingMoreReplies(false);
     }
   };
+
+  // Load more replies function
+  const handleLoadMoreReplies = () => {
+    if (isLoadingMoreReplies || replyPage >= totalReplyPages) return;
+    
+    setIsLoadingMoreReplies(true);
+    const nextPage = replyPage + 1;
+    setReplyPage(nextPage);
+    fetchDiscussionDetail(expandedDiscussionId, nextPage);
+  };
+
 
   const handleViewClick = (id) => {
     if (expandedDiscussionId === id) {
@@ -1126,6 +1167,7 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
                     
                     {/* List of Replies */}
                     {discussion.replies && discussion.replies.length > 0 ? (
+                      <>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         {discussion.replies.map((reply) => {
                           const replyDate = new Date(reply.createdAt);
@@ -1225,6 +1267,21 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
                           );
                         })}
                       </Box>
+
+                      {/* Pagination - Load More Button */}
+                      {replyPage < totalReplyPages && (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                          <Button 
+                            variant="outlined" 
+                            onClick={handleLoadMoreReplies}
+                            disabled={isLoadingMoreReplies}
+                            startIcon={isLoadingMoreReplies ? <CircularProgress size={16} /> : <MessageSquare size={16} />}
+                          >
+                            {isLoadingMoreReplies ? 'Loading...' : 'Load More Replies'}
+                          </Button>
+                        </Box>
+                      )}
+                      </>
                     ) : (
                       <Box sx={{ textAlign: 'center', py: 4 }}>
                         <Typography color="text.secondary">
