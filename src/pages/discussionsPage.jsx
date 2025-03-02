@@ -107,6 +107,18 @@ export function DiscussionsPage() {
         });
       }
     });
+
+    newSocket.on('new-reply', ({ discussionId }) => {
+      setDiscussions(prev => prev.map(d => 
+        d._id === discussionId ? { ...d, repliesCount: d.repliesCount + 1 } : d
+      ));
+    });
+  
+    newSocket.on('delete-reply', ({ discussionId }) => {
+      setDiscussions(prev => prev.map(d => 
+        d._id === discussionId ? { ...d, repliesCount: d.repliesCount - 1 } : d
+      ));
+    });
   
     return () => newSocket.disconnect();
   }, [currentPage, itemsPerPage, sortType]);
@@ -574,7 +586,6 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
           const sortedReplies = sortReplies(newReplies, replySortRef.current);
           return { ...prev, replies: sortedReplies, repliesCount: prev.repliesCount + 1 };
         });
-        onUpdateRepliesCount(discussionId, 1);
       }
     };
 
