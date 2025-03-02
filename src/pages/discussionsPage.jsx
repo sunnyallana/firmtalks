@@ -44,6 +44,8 @@ import MessageIcon from '@mui/icons-material/Message';
 import { DiscussionForm } from '../components/discussions/discussion-form';
 import { io } from 'socket.io-client';
 import { Pagination } from '@mui/material';
+import MarkdownRenderer from '../components/markdown-renderer';
+import removeMarkdown from 'remove-markdown';
 
 const defaultAvatar = "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
 
@@ -949,7 +951,7 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
                 }}
                 onClick={() => handleViewClick(discussionItem._id)}
               >
-                {discussionItem.content}
+                {removeMarkdown(discussionItem.content || '')}
               </Typography>
             )}
             
@@ -1009,10 +1011,12 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
                 ) : discussion ? (
                   <>
                     {/* Full Discussion Content */}
-                    <Typography variant="body1" sx={{ mb: 3, whiteSpace: 'pre-wrap' }}>
-                      {discussion.content}
-                    </Typography>
-                    
+                    <Box sx={{ mb: 3 }}>
+                      <MarkdownRenderer>
+                        {discussion.content}
+                      </MarkdownRenderer>
+                    </Box>
+                                        
                     <Divider sx={{ mb: 3 }} />
                     
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -1046,7 +1050,8 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
                             multiline
                             minRows={2}
                             maxRows={4}
-                            placeholder="Add your reply..."
+                            placeholder="Add your reply... (Markdown supported)"
+                            helperText="Markdown formatting supported"
                             value={replyContent}
                             onChange={(e) => setReplyContent(e.target.value)}
                             sx={{ mb: 1 }}
@@ -1143,9 +1148,12 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
                                 )}
                               </Box>
                               
-                              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mb: 1 }}>
-                                {reply.content}
-                              </Typography>
+                              {/* Reply Content */}
+                              <Box sx={{ mb: 1 }}>
+                                <MarkdownRenderer>
+                                  {reply.content}
+                                </MarkdownRenderer>
+                              </Box>
                               
                               <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 1 }}>
                                 <Tooltip title={isSignedIn ? "Like this reply" : "Sign in to like"}>

@@ -37,3 +37,108 @@
 html {
   scroll-behavior: smooth;
 }
+
+/* Markdown styling */
+.markdown-body {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: inherit;
+}
+
+/* Headings */
+.markdown-body h1 {
+  font-size: 2em;
+  border-bottom: 2px solid hsl(var(--border));
+  padding-bottom: 0.3em;
+  margin: 0.67em 0;
+}
+
+.markdown-body h2 {
+  font-size: 1.5em;
+  border-bottom: 1px solid hsl(var(--border));
+  padding-bottom: 0.2em;
+  margin: 0.83em 0;
+}
+
+.markdown-body h3 { font-size: 1.25em; margin: 1em 0; }
+.markdown-body h4 { font-size: 1em; margin: 1.33em 0; }
+.markdown-body h5 { font-size: 0.875em; margin: 1.67em 0; }
+.markdown-body h6 { 
+  font-size: 0.85em;
+  color: hsl(var(--muted-foreground));
+  margin: 2.33em 0;
+}
+
+/* Code blocks */
+.markdown-body pre {
+  background: hsl(var(--muted)) !important;
+  padding: 1em;
+  border-radius: 6px;
+  border: 1px solid hsl(var(--border));
+  overflow-x: auto;
+  margin: 1em 0;
+}
+
+.markdown-body code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  background: hsl(var(--muted));
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  color: hsl(var(--foreground));
+}
+
+/* Lists */
+.markdown-body ol {
+  list-style-type: decimal;
+  padding-left: 2em;
+  margin: 1em 0;
+}
+
+.markdown-body ul {
+  list-style: none;
+  padding-left: 2em;
+  margin: 1em 0;
+}
+
+.markdown-body li {
+  margin: 0.5em 0;
+  position: relative;
+}
+
+/* Custom list bullets */
+.markdown-body ul li::before {
+  content: "•";
+  color: hsl(var(--primary));
+  font-weight: bold;
+  position: absolute;
+  left: -1em;
+  width: 1em;
+}
+
+.markdown-body ul ul li::before {
+  content: "◦";
+  color: hsl(var(--primary) / 0.7);
+}
+
+.markdown-body ul ul ul li::before {
+  content: "▪";
+  color: hsl(var(--primary) / 0.5);
+}
+
+/* Blockquotes */
+.markdown-body blockquote {
+  border-left: 4px solid hsl(var(--border));
+  margin: 1em 0;
+  padding-left: 1em;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Links */
+.markdown-body a {
+  color: hsl(var(--primary));
+  text-decoration: none;
+}
+
+.markdown-body a:hover {
+  text-decoration: underline;
+}

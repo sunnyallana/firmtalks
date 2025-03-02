@@ -44,7 +44,7 @@ export function DiscussionForm({ onSubmit, initialValues = {}, isEditing = false
             rows={6}
             error={!!errors.content}
             helperText={errors.content?.message}
-            placeholder="Describe your question or discussion topic in detail..."
+            placeholder="Describe your question or discussion topic in detail... [Markdown formatting supported]"
           />
         </Box>
         <Box sx={{ mb: 3 }}>
