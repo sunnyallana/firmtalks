@@ -56,13 +56,11 @@ const userSchema = new mongoose.Schema({
 
 // Method to calculate reputation
 userSchema.methods.calculateReputation = function() {
-  // Weights for different metrics
   const discussionWeight = 5;
   const likeWeight = 2;
   const malwareScanWeight = 10;
   const replyWeight = 3;
   
-  // Basic reputation calculation
   const baseReputation = (
     this.totalDiscussions * discussionWeight +
     this.totalLikes * likeWeight +
@@ -70,18 +68,17 @@ userSchema.methods.calculateReputation = function() {
     this.totalReplies * replyWeight
   );
   
-  // Calculate activity recency factor
   const daysSinceLastActive = Math.max(
     0, 
     (Date.now() - this.lastActive) / (1000 * 60 * 60 * 24)
   );
   const recencyMultiplier = Math.max(0.5, 1 - (daysSinceLastActive / 30));
   
-  // Apply recency factor to reputation
   this.reputation = Math.round(baseReputation * recencyMultiplier);
   
   return this.reputation;
 };
+
 
 // Update reputation when relevant fields change
 userSchema.pre('save', function(next) {
