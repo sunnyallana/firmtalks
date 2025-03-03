@@ -6,7 +6,6 @@ const likeSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  // The item being liked (either Discussion or Reply)
   target: {
     type: mongoose.Schema.Types.ObjectId,
     required: true,
@@ -23,7 +22,6 @@ const likeSchema = new mongoose.Schema({
   }
 });
 
-// Compound index to ensure a user can only like something once
 likeSchema.index({ user: 1, target: 1 }, { unique: true });
 
 export const Like = mongoose.model('Like', likeSchema);

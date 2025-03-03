@@ -138,7 +138,12 @@ router.post('/', requireAuth(), async (req, res) => {
       tags: tags ? tags.split(',').map(tag => tag.trim()) : []
     });
 
+
     await discussion.save();
+    user.totalDiscussions += 1;
+    user.lastActive = new Date();
+    await user.save();
+   
 
     const populatedDiscussion = {
       ...discussion.toObject(),
@@ -245,7 +250,6 @@ router.put('/:id', requireAuth(), async (req, res) => {
     const { userId } = getAuth(req);
     const { title, content, tags } = req.body;
     
-    // Get user
     const user = await User.findOne({ clerkId: userId });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -256,12 +260,10 @@ router.put('/:id', requireAuth(), async (req, res) => {
       return res.status(404).json({ message: 'Discussion not found' });
     }
 
-    // Check if user is the author
     if (discussion.author.toString() !== user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to edit this discussion' });
     }
 
-    // Validate minimum lengths
     if (title && title.length < 10) {
       return res.status(400).json({ message: 'Title must be at least 10 characters long' });
     }
@@ -303,16 +305,41 @@ router.delete('/:id', requireAuth(), async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this discussion' });
     }
 
-    // Delete associated replies and likes
-    await Reply.deleteMany({ discussion: discussion._id });
-    await Like.deleteMany({ 
+    // Get all reply IDs for the discussion
+    const replyIds = await Reply.find({ discussion: discussion._id }).distinct('_id');
+
+    // Find all likes to delete (both discussion and replies)
+    const likesToDelete = await Like.find({
       $or: [
         { target: discussion._id, targetModel: 'Discussion' },
-        { target: { $in: await Reply.find({ discussion: discussion._id }).distinct('_id') }, targetModel: 'Reply' }
+        { target: { $in: replyIds }, targetModel: 'Reply' }
       ]
     });
 
+    // Group likes by user and count
+    const likesByUser = {};
+    likesToDelete.forEach(like => {
+      const userId = like.user.toString();
+      likesByUser[userId] = (likesByUser[userId] || 0) + 1;
+    });
+
+    // Update each user's totalLikes
+    for (const userId of Object.keys(likesByUser)) {
+      const count = likesByUser[userId];
+      await User.findByIdAndUpdate(userId, { $inc: { totalLikes: -count } });
+    }
+
+    // Delete the likes
+    await Like.deleteMany({
+      _id: { $in: likesToDelete.map(like => like._id) }
+    });
+
+    await Reply.deleteMany({ discussion: discussion._id });
     await Discussion.findByIdAndDelete(req.params.id);
+
+    user.totalDiscussions = Math.max(0, user.totalDiscussions - 1);
+    user.lastActive = new Date();
+    await user.save();
     
     const io = req.app.get('io');
     io.emit('delete-discussion', req.params.id);
@@ -331,14 +358,12 @@ router.get('/tags/:tag', async (req, res) => {
       .populate('author', 'username email clerkId profileImageUrl')
       .sort({ createdAt: -1 });
 
-    // Get like counts
     const discussionIds = discussions.map(d => d._id);
     const likeCounts = await Like.aggregate([
       { $match: { targetModel: 'Discussion', target: { $in: discussionIds } } },
       { $group: { _id: '$target', count: { $sum: 1 } } }
     ]);
 
-    // Create a map of discussion ID to like count
     const likeCountMap = likeCounts.reduce((acc, curr) => {
       acc[curr._id] = curr.count;
       return acc;
@@ -398,6 +423,7 @@ router.post('/:id/replies', requireAuth(), async (req, res) => {
     user.totalReplies += 1;
     user.lastActive = new Date();
     await user.save();
+    
 
     const populatedReply = await Reply.findById(reply._id)
       .populate('author', 'username email clerkId profileImageUrl');
@@ -463,44 +489,53 @@ router.delete('/:discussionId/replies/:replyId', requireAuth(), async (req, res)
     const { userId } = getAuth(req);
     const { discussionId, replyId } = req.params;
 
-    // Get user
     const user = await User.findOne({ clerkId: userId });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Find the reply
     const reply = await Reply.findById(replyId);
     if (!reply) {
       return res.status(404).json({ message: 'Reply not found' });
     }
 
-    // Verify the reply belongs to the discussion
     if (reply.discussion.toString() !== discussionId) {
       return res.status(400).json({ message: 'Reply does not belong to this discussion' });
     }
 
-    // Check if user is the author
     if (reply.author.toString() !== user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to delete this reply' });
     }
 
-    // Update discussion replies count
+    // Find all likes to delete on this reply
+    const likesToDelete = await Like.find({ target: replyId, targetModel: 'Reply' });
+
+    // Group likes by user and count
+    const likesByUser = {};
+    likesToDelete.forEach(like => {
+      const userId = like.user.toString();
+      likesByUser[userId] = (likesByUser[userId] || 0) + 1;
+    });
+
+    // Update each user's totalLikes
+    for (const userId of Object.keys(likesByUser)) {
+      const count = likesByUser[userId];
+      await User.findByIdAndUpdate(userId, { $inc: { totalLikes: -count } });
+    }
+
+    // Delete the likes
+    await Like.deleteMany({ _id: { $in: likesToDelete.map(like => like._id) } });
+
     const discussion = await Discussion.findById(discussionId);
     if (discussion) {
       discussion.repliesCount = Math.max(0, discussion.repliesCount - 1);
       await discussion.save();
     }
 
-    // Update user metrics
     user.totalReplies = Math.max(0, user.totalReplies - 1);
     user.lastActive = new Date();
     await user.save();
 
-    // Delete associated likes
-    await Like.deleteMany({ target: replyId, targetModel: 'Reply' });
-
-    // Delete the reply
     await Reply.findByIdAndDelete(replyId);
 
     const io = req.app.get('io');

@@ -67,7 +67,6 @@ export function DiscussionsPage() {
   const [totalItems, setTotalItems] = useState(0);
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-
   useEffect(() => {
     const newSocket = io('http://localhost:3000');
     setSocket(newSocket);
