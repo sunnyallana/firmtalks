@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SignInButton, useAuth } from '@clerk/clerk-react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -60,8 +60,6 @@ export function DiscussionsPage() {
   const theme = useTheme();
   const [socket, setSocket] = useState(null);
   const { discussionId } = useParams();
-  const [searchParams] = useSearchParams();
-  const viewFirst = searchParams.get('viewFirst') === 'true';
   const [sortType, setSortType] = useState('recent');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -141,35 +139,36 @@ export function DiscussionsPage() {
 
   useEffect(() => {
     fetchDiscussions();
-  }, [sortType, currentPage, itemsPerPage]);
+  }, [sortType, currentPage, itemsPerPage, ]);
 
 
   const fetchDiscussions = async () => {
     try {
       setIsLoading(true);
       const token = await getToken();
-  
+
       const headers = {};
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-  
+
+      // Fetch all discussions
       const response = await fetch(
         `http://localhost:3000/api/discussions?sort=${sortType}&page=${currentPage}&limit=${itemsPerPage}`,
         { headers }
       );
-  
+
       if (!response.ok) {
         const errorData = await response.json();
         console.error('Error Response:', errorData);
         throw new Error(`Error fetching discussions: ${response.status}`);
       }
-  
+
       const data = await response.json();
-      console.log('Fetched Data:', data);
-  
+      let discussions = data.discussions || [];
+
       setTotalItems(data.totalItems);
-      setDiscussions(data.discussions || []);
+      setDiscussions(discussions);
       setError(null);
     } catch (error) {
       console.error('Error fetching discussions:', error);
@@ -704,7 +703,6 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
     }
   };
 
-  // Load more replies function
   const handleLoadMoreReplies = () => {
     if (isLoadingMoreReplies || replyPage >= totalReplyPages) return;
     

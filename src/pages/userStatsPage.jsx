@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Avatar, Box, Card, CardContent, Typography, Container, Skeleton, useTheme, alpha } from '@mui/material';
 import { ThumbsUp, MessageCircle, Star, Shield, Calendar, MessageSquare, Bookmark } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -48,13 +48,17 @@ const StatItem = ({ icon: Icon, label, value, color, iconColor, bgColor }) => {
 
 export function UserStatsPage() {
   const { clerkId } = useParams();
+  const { userId: currentUserId } = useAuth();
+  const { getToken } = useAuth();
   const [stats, setStats] = useState(null);
   const [bookmarks, setBookmarks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const theme = useTheme();
-  const { getToken } = useAuth();
+  const navigate = useNavigate();
 
+  const isViewingOwnProfile = clerkId === currentUserId;
+  
   const iconColors = {
     discussions: {
       main: '#738aff',
@@ -83,28 +87,6 @@ export function UserStatsPage() {
   };
 
   useEffect(() => {
-    const fetchBookmarks = async () => {
-      try {
-        const token = await getToken();
-        const response = await fetch(`http://localhost:3000/api/users/me/bookmarks`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        if (!response.ok) throw new Error('Failed to fetch bookmarks');
-        const data = await response.json();
-        setBookmarks(data);
-      } catch (err) {
-        setError(err.message);
-      }
-    };
-
-    if (clerkId) {
-      fetchBookmarks();
-    }
-  }, [clerkId, getToken]);
-
-  useEffect(() => {
     const fetchStats = async () => {
       try {
         const response = await fetch(`http://localhost:3000/api/users/${clerkId}`);
@@ -118,8 +100,27 @@ export function UserStatsPage() {
       }
     };
 
+    const fetchBookmarks = async () => {
+      try {
+        if (isViewingOwnProfile) {
+          const token = await getToken();
+          const response = await fetch(`http://localhost:3000/api/users/me/bookmarks`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (!response.ok) throw new Error('Failed to fetch bookmarks');
+          const data = await response.json();
+          setBookmarks(data);
+        }
+      } catch (err) {
+        setError(err.message);
+      }
+    };
+
     fetchStats();
-  }, [clerkId]);
+    fetchBookmarks();
+  }, [clerkId, getToken, isViewingOwnProfile]);
 
   if (loading) {
     return (
@@ -254,31 +255,38 @@ export function UserStatsPage() {
       </Box>
 
       {/* Bookmarked Discussions Section */}
-      <Box sx={{ mt: 6 }}>
-        <Typography variant="h4" fontWeight="bold" gutterBottom color="text.primary">
-          Bookmarked Discussions
-        </Typography>
-        {bookmarks.length > 0 ? (
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3 }}>
-            {bookmarks.map((bookmark) => (
-              <Card key={bookmark._id} sx={{ borderRadius: 2 }}>
-                <CardContent>
-                  <Typography variant="h6" component="a" href={`/discussions/${bookmark.discussion._id}`}>
-                    {bookmark.discussion.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    by {bookmark.discussion.author.username}
-                  </Typography>
-                </CardContent>
-              </Card>
-            ))}
-          </Box>
-        ) : (
-          <Typography variant="body1" color="text.secondary">
-            No bookmarked discussions yet.
-          </Typography>
-        )}
-      </Box>
+      {isViewingOwnProfile && (
+        <Box sx={{ mt: 6 }}>
+          
+          {bookmarks.length > 0 && (
+            <>
+            <Typography variant="h4" fontWeight="bold" gutterBottom color="text.primary">
+            Bookmarked Discussions
+            </Typography>
+
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3 }}>
+              {bookmarks.map((bookmark) => (
+                bookmark.discussion ? (
+                  <Card key={bookmark._id} sx={{ borderRadius: 2 }}>
+                    <CardContent>
+                      <Typography variant="h6" component="a" 
+                        onClick={() => navigate(`/discussions/${bookmark.discussion._id}?viewFirst=true`)}
+                        sx={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}
+                      >
+                        {bookmark.discussion.title}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        by {bookmark.discussion.author.username}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                ) : null
+              ))}
+            </Box>
+            </>
+          )}
+        </Box>
+      )}
     </Container>
   );
 };
