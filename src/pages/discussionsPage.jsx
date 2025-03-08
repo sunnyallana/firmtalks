@@ -135,25 +135,29 @@ export function DiscussionsPage() {
   const fetchDiscussions = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(
-        `http://localhost:3000/api/discussions?sort=${sortType}&page=${currentPage}&limit=${itemsPerPage}`
-      );
-      if (!response.ok) throw new Error(`Error fetching discussions: ${response.status}`);
-      const data = await response.json();
+      const token = await getToken();
   
-      setTotalItems(data.totalItems);
-  
-      let processedDiscussions = data.discussions || [];
-      
-      if (viewFirst && discussionId) {
-        const selectedDiscussionIndex = processedDiscussions.findIndex(d => d._id === discussionId);
-        if (selectedDiscussionIndex !== -1) {
-          const selectedDiscussion = processedDiscussions.splice(selectedDiscussionIndex, 1)[0];
-          processedDiscussions.unshift(selectedDiscussion);
-        }
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
   
-      setDiscussions(processedDiscussions);
+      const response = await fetch(
+        `http://localhost:3000/api/discussions?sort=${sortType}&page=${currentPage}&limit=${itemsPerPage}`,
+        { headers }
+      );
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error Response:', errorData);
+        throw new Error(`Error fetching discussions: ${response.status}`);
+      }
+  
+      const data = await response.json();
+      console.log('Fetched Data:', data);
+  
+      setTotalItems(data.totalItems);
+      setDiscussions(data.discussions || []);
       setError(null);
     } catch (error) {
       console.error('Error fetching discussions:', error);
@@ -258,12 +262,10 @@ export function DiscussionsPage() {
 
   const handleBookmarkDiscussion = async (discussionId) => {
     if (!isSignedIn) return;
-
+  
     try {
-      const discussion = discussions.find(d => d._id === discussionId);
-      const isBookmarked = discussion?.bookmarked;      
       const token = await getToken();
-
+  
       const response = await fetch(
         `http://localhost:3000/api/users/me/bookmarks/${discussionId}`,
         {
@@ -273,12 +275,12 @@ export function DiscussionsPage() {
           }
         }
       );
-
+  
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to toggle bookmark');
       }
-
+  
       setDiscussions(prev => prev.map(d => 
         d._id === discussionId ? { ...d, bookmarked: !d.bookmarked } : d
       ));
@@ -853,7 +855,7 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
               </Typography>
 
                 <Box>
-                 <Tooltip title={isSignedIn ? (discussionItem.bookmarked ? "Remove bookmark" : "Bookmark this") : "Sign in to bookmark"}>
+                  <Tooltip title={isSignedIn ? (discussionItem.bookmarked ? "Remove bookmark" : "Bookmark this") : "Sign in to bookmark"}>
                     <IconButton
                       size="small"
                       onClick={(e) => {

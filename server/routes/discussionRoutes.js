@@ -7,6 +7,35 @@ import { clerkClient, requireAuth, getAuth } from '@clerk/express';
 
 const router = express.Router();
 
+// Get current user by clerkId
+async function getCurrentUser(userId) {
+  let user = await User.findOne({ clerkId: userId });
+  if (!user) {
+    const clerkUser = await clerkClient.users.getUser(userId);
+    user = await User.create({
+      clerkId: userId,
+      email: clerkUser.emailAddresses[0].emailAddress,
+      username: clerkUser.username || clerkUser.firstName + clerkUser.lastName || 'user' + Date.now(),
+      profileImageUrl: clerkUser.imageUrl
+    });
+  }
+  return user;
+}
+
+// Add middleware to discussions route
+router.use(async (req, res, next) => {
+  try {
+    const auth = getAuth(req);
+    if (auth.userId) {
+      const user = await getCurrentUser(auth.userId);
+      req.userId = user._id;
+    }
+    next();
+  } catch (error) {
+    next();
+  }
+});
+
 // Get all discussions - public route
 router.get('/', async (req, res) => {
   try {
@@ -15,9 +44,44 @@ router.get('/', async (req, res) => {
     const parsedLimit = Math.min(Math.max(parseInt(limit), 1), 50);
     const skip = (parsedPage - 1) * parsedLimit;
 
+    // Add bookmark status lookup
+    const bookmarkLookup = {
+      $lookup: {
+        from: 'bookmarks',
+        let: { discussionId: '$_id' },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ['$discussion', '$$discussionId'] },
+                  ...(userId ? [{ $eq: ['$user', userId] }] : [])
+                ]
+              }
+            }
+          },
+          { $limit: 1 }
+        ],
+        as: 'bookmarkInfo'
+      }
+    };
+
+    const addFieldsStage = {
+      $addFields: {
+        bookmarked: { $gt: [{ $size: '$bookmarkInfo' }, 0] }
+      }
+    };
+
+    // Add to your aggregation pipeline
+    const pipeline = [
+      bookmarkLookup,
+      addFieldsStage,
+      { $project: { bookmarkInfo: 0 } }
+    ];
+
     // Sorting logic
     let sortOptions = {};
-    switch(sort) {
+    switch (sort) {
       case 'recent':
         sortOptions = { createdAt: -1 };
         break;
@@ -32,37 +96,34 @@ router.get('/', async (req, res) => {
     const total = await Discussion.countDocuments();
     const totalPages = Math.ceil(total / parsedLimit);
 
-    const discussions = await Discussion.find()
-      .populate('author', 'username email clerkId profileImageUrl')
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(parsedLimit);
-
-    // Check if each discussion is bookmarked by the user
-    const bookmarkedDiscussions = await Promise.all(discussions.map(async (discussion) => {
-      if (userId) {
-        const bookmark = await Bookmark.findOne({ user: userId, discussion: discussion._id });
-        return {
-          ...discussion.toObject(),
-          bookmarked: !!bookmark
-        };
-      }
-      return {
-        ...discussion.toObject(),
-        bookmarked: false
-      };
-    }));
+    const discussions = await Discussion.aggregate([
+      ...pipeline,
+      { $sort: sortOptions },
+      { $skip: skip },
+      { $limit: parsedLimit },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'author',
+          foreignField: '_id',
+          as: 'author'
+        }
+      },
+      { $unwind: '$author' }
+    ]);
 
     res.json({
-      discussions: bookmarkedDiscussions,
+      discussions,
       totalPages,
       currentPage: parsedPage,
       totalItems: total
     });
   } catch (error) {
+    console.error('Error in GET /api/discussions:', error);
     res.status(500).json({ message: `Error fetching discussions: ${error.message}` });
   }
 });
+
 
 // Get single discussion with replies - public route
 router.get('/:id', async (req, res) => {
