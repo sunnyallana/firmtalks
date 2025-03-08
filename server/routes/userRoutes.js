@@ -70,53 +70,50 @@ router.get('/me/bookmarks', requireAuth(), async (req, res) => {
   }
 });
 
-// Add bookmark
-router.post('/me/bookmarks/:discussionId', requireAuth(), async (req, res) => {
+// Post or delete bookmark for user
+router.put('/me/bookmarks/:discussionId', requireAuth(), async (req, res) => {
   try {
     const { userId } = getAuth(req);
     const { discussionId } = req.params;
     const user = await getCurrentUser(userId);
 
+    // Check for existing bookmark
     const existingBookmark = await Bookmark.findOne({
       user: user._id,
       discussion: discussionId
     });
 
+    let action = '';
+    let result = null;
+    const io = req.app.get('io');
+
     if (existingBookmark) {
-      return res.status(400).json({ message: 'Discussion already bookmarked' });
+      // Remove bookmark
+      await Bookmark.findByIdAndDelete(existingBookmark._id);
+      action = 'removed';
+      io.emit('bookmark-removed', { userId: user._id, discussionId });
+    } else {
+      // Add new bookmark
+      const newBookmark = new Bookmark({
+        user: user._id,
+        discussion: discussionId
+      });
+      result = await newBookmark.save();
+      action = 'added';
+      io.emit('bookmark-added', { userId: user._id, discussionId });
     }
 
-    const bookmark = new Bookmark({
-      user: user._id,
-      discussion: discussionId
+    res.json({
+      action,
+      bookmarked: !existingBookmark,
+      bookmark: result
     });
 
-    await bookmark.save();
-    res.status(201).json(bookmark);
   } catch (error) {
-    res.status(500).json({ message: `Error creating bookmark: ${error.message}` });
-  }
-});
-
-// Remove bookmark
-router.delete('/me/bookmarks/:discussionId', requireAuth(), async (req, res) => {
-  try {
-    const { userId } = getAuth(req);
-    const { discussionId } = req.params;
-    const user = await getCurrentUser(userId);
-
-    const bookmark = await Bookmark.findOneAndDelete({
-      user: user._id,
-      discussion: discussionId
+    res.status(500).json({ 
+      message: `Error toggling bookmark: ${error.message}`,
+      code: error.code
     });
-
-    if (!bookmark) {
-      return res.status(404).json({ message: 'Bookmark not found' });
-    }
-
-    res.json({ message: 'Bookmark removed successfully' });
-  } catch (error) {
-    res.status(500).json({ message: `Error removing bookmark: ${error.message}` });
   }
 });
 

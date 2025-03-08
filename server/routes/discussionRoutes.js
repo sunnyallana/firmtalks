@@ -10,7 +10,7 @@ const router = express.Router();
 // Get all discussions - public route
 router.get('/', async (req, res) => {
   try {
-    const { sort = 'recent', page = 1, limit = 5 } = req.query;
+    const { sort = 'recent', page = 1, limit = 5, userId } = req.query;
     const parsedPage = Math.max(parseInt(page), 1);
     const parsedLimit = Math.min(Math.max(parseInt(limit), 1), 50);
     const skip = (parsedPage - 1) * parsedLimit;
@@ -38,8 +38,23 @@ router.get('/', async (req, res) => {
       .skip(skip)
       .limit(parsedLimit);
 
+    // Check if each discussion is bookmarked by the user
+    const bookmarkedDiscussions = await Promise.all(discussions.map(async (discussion) => {
+      if (userId) {
+        const bookmark = await Bookmark.findOne({ user: userId, discussion: discussion._id });
+        return {
+          ...discussion.toObject(),
+          bookmarked: !!bookmark
+        };
+      }
+      return {
+        ...discussion.toObject(),
+        bookmarked: false
+      };
+    }));
+
     res.json({
-      discussions,
+      discussions: bookmarkedDiscussions,
       totalPages,
       currentPage: parsedPage,
       totalItems: total
@@ -52,11 +67,19 @@ router.get('/', async (req, res) => {
 // Get single discussion with replies - public route
 router.get('/:id', async (req, res) => {
   try {
+    const { userId } = req.query;
     const discussion = await Discussion.findById(req.params.id)
       .populate('author', 'username email clerkId profileImageUrl');
 
     if (!discussion) {
       return res.status(404).json({ message: 'Discussion not found' });
+    }
+
+    // Check if the discussion is bookmarked by the user
+    let bookmarked = false;
+    if (userId) {
+      const bookmark = await Bookmark.findOne({ user: userId, discussion: discussion._id });
+      bookmarked = !!bookmark;
     }
 
     // Parse reply pagination parameters
@@ -89,6 +112,7 @@ router.get('/:id', async (req, res) => {
 
     const populatedDiscussion = {
       ...discussion.toObject(),
+      bookmarked, // Add the bookmarked field
       likesCount: likeCountMap[discussion._id] || 0,
       replies: {
         items: replies.map(reply => ({
@@ -108,6 +132,7 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({ message: `Error fetching discussion: ${error.message}` });
   }
 });
+
 
 // Create a new discussion - protected route
 router.post('/', requireAuth(), async (req, res) => {

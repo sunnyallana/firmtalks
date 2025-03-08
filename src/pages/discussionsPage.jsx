@@ -31,7 +31,8 @@ import {
   Trash2,
   ArrowRight,
   Send,
-  Share2
+  Share2,
+  Bookmark
 } from 'lucide-react';
 import {
   LinkedIn as LinkedInIcon,
@@ -139,9 +140,9 @@ export function DiscussionsPage() {
       );
       if (!response.ok) throw new Error(`Error fetching discussions: ${response.status}`);
       const data = await response.json();
-
+  
       setTotalItems(data.totalItems);
-
+  
       let processedDiscussions = data.discussions || [];
       
       if (viewFirst && discussionId) {
@@ -151,7 +152,7 @@ export function DiscussionsPage() {
           processedDiscussions.unshift(selectedDiscussion);
         }
       }
-
+  
       setDiscussions(processedDiscussions);
       setError(null);
     } catch (error) {
@@ -252,6 +253,38 @@ export function DiscussionsPage() {
     } catch (error) {
       console.error('Error liking discussion:', error);
       setError('Failed to like discussion. Please try again.');
+    }
+  };
+
+  const handleBookmarkDiscussion = async (discussionId) => {
+    if (!isSignedIn) return;
+
+    try {
+      const discussion = discussions.find(d => d._id === discussionId);
+      const isBookmarked = discussion?.bookmarked;      
+      const token = await getToken();
+
+      const response = await fetch(
+        `http://localhost:3000/api/users/me/bookmarks/${discussionId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to toggle bookmark');
+      }
+
+      setDiscussions(prev => prev.map(d => 
+        d._id === discussionId ? { ...d, bookmarked: !d.bookmarked } : d
+      ));
+    } catch (error) {
+      console.error('Error toggling bookmark:', error);
+      setError(error.message || 'Failed to toggle bookmark. Please try again.');
     }
   };
 
@@ -409,6 +442,7 @@ export function DiscussionsPage() {
             onDeleteDiscussion={handleDeleteDiscussion}
             onEditDiscussion={handleEditDiscussion}
             onLikeDiscussion={handleLikeDiscussion}
+            onBookmarkDiscussion={handleBookmarkDiscussion}
             currentUserId={userId}
             socket={socket}
           />
@@ -433,7 +467,8 @@ export function DiscussionsPage() {
   );
 }
 
-export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDiscussion, onEditDiscussion, onLikeDiscussion, currentUserId, socket}) {
+export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDiscussion, onEditDiscussion, 
+  onLikeDiscussion, onBookmarkDiscussion, currentUserId, socket}) {
   const { getToken, isSignedIn } = useAuth();
   const [discussion, setDiscussion] = useState(null);
   const [replyContent, setReplyContent] = useState('');
@@ -451,6 +486,7 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
   const [totalReplyPages, setTotalReplyPages] = useState(1);
   const [isLoadingMoreReplies, setIsLoadingMoreReplies] = useState(false);
   const replyLimit = 10;
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     replySortRef.current = replySort;
@@ -612,7 +648,6 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
 
 
 
-  // Fetch full discussion details
   const fetchDiscussionDetail = async (id, page = 1) => {
     setIsLoadingDetail(true);
     try {
@@ -620,30 +655,23 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
       if (!response.ok) throw new Error(`Error fetching discussion: ${response.status}`);
       const data = await response.json();
       
-      // Handle paginated replies structure
       const replies = data.replies.items || [];
       
       if (page === 1) {
-        // First page - replace all replies
         setOriginalReplies(replies);
       } else {
-        // Subsequent pages - append to existing replies
         setOriginalReplies(prev => [...prev, ...replies]);
       }
       
-      // Set total pages from pagination data
       setTotalReplyPages(data.replies.pagination.totalPages || 1);
       
-      // Update the discussion with sorted replies
       const allReplies = page === 1 ? replies : [...originalReplies, ...replies];
       const sortedReplies = sortReplies(allReplies, replySort);
       
       setDiscussion(prev => {
-        // If it's the first page or no previous discussion, use the new data
         if (page === 1 || !prev) {
           return {...data, replies: sortedReplies};
         }
-        // Otherwise, update existing discussion with new replies
         return {...prev, replies: sortedReplies};
       });
     } catch (error) {
@@ -825,6 +853,19 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
               </Typography>
 
                 <Box>
+                 <Tooltip title={isSignedIn ? (discussionItem.bookmarked ? "Remove bookmark" : "Bookmark this") : "Sign in to bookmark"}>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onBookmarkDiscussion(discussionItem._id);
+                      }}
+                      sx={{ color: 'text.secondary' }}
+                    >
+                      <Bookmark size={18} fill={discussionItem.bookmarked ? theme.palette.primary.main : 'none'} />
+                    </IconButton>
+                  </Tooltip>
+
                 <Tooltip title="Share this discussion">
                   <IconButton
                     size="small"
