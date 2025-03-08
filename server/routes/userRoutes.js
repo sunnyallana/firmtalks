@@ -1,8 +1,7 @@
 import express from 'express';
 import { User } from '../models/userModel.js';
 import { Bookmark } from '../models/bookmarkModel.js';
-import { requireAuth, getAuth } from '../middleware/authMiddleware.js';
-
+import { clerkClient, requireAuth, getAuth } from '@clerk/express';
 
 const router = express.Router();
 
@@ -28,18 +27,32 @@ router.get('/:clerkId', async (req, res) => {
       totalMalwareScans: user.totalMalwareScans
     };
 
-
     res.json(stats);
   } catch (error) {
     res.status(500).json({ message: `Error fetching user stats: ${error.message}` });
   }
 });
 
+// Get current user by clerkId
+async function getCurrentUser(userId) {
+  let user = await User.findOne({ clerkId: userId });
+  if (!user) {
+    const clerkUser = await clerkClient.users.getUser(userId);
+    user = await User.create({
+      clerkId: userId,
+      email: clerkUser.emailAddresses[0].emailAddress,
+      username: clerkUser.username || clerkUser.firstName + clerkUser.lastName || 'user' + Date.now(),
+      profileImageUrl: clerkUser.imageUrl
+    });
+  }
+  return user;
+}
+
 // Get all bookmarks for user
 router.get('/me/bookmarks', requireAuth(), async (req, res) => {
   try {
     const { userId } = getAuth(req);
-    const user = await User.findOne({ clerkId: userId });
+    const user = await getCurrentUser(userId);
     
     const bookmarks = await Bookmark.find({ user: user._id })
       .populate({
@@ -62,7 +75,7 @@ router.post('/me/bookmarks/:discussionId', requireAuth(), async (req, res) => {
   try {
     const { userId } = getAuth(req);
     const { discussionId } = req.params;
-    const user = await User.findOne({ clerkId: userId });
+    const user = await getCurrentUser(userId);
 
     const existingBookmark = await Bookmark.findOne({
       user: user._id,
@@ -90,7 +103,7 @@ router.delete('/me/bookmarks/:discussionId', requireAuth(), async (req, res) => 
   try {
     const { userId } = getAuth(req);
     const { discussionId } = req.params;
-    const user = await User.findOne({ clerkId: userId });
+    const user = await getCurrentUser(userId);
 
     const bookmark = await Bookmark.findOneAndDelete({
       user: user._id,
