@@ -39,12 +39,15 @@ router.use(async (req, res, next) => {
 // Get all discussions - public route
 router.get('/', async (req, res) => {
   try {
-    const { sort = 'recent', page = 1, limit = 5, userId } = req.query;
+    const { sort = 'recent', page = 1, limit = 5 } = req.query;
     const parsedPage = Math.max(parseInt(page), 1);
     const parsedLimit = Math.min(Math.max(parseInt(limit), 1), 50);
     const skip = (parsedPage - 1) * parsedLimit;
 
-    // Add bookmark status lookup
+    // Get user ID from middleware
+    const userId = req.userId;
+
+    // Updated bookmark lookup
     const bookmarkLookup = {
       $lookup: {
         from: 'bookmarks',
@@ -65,6 +68,7 @@ router.get('/', async (req, res) => {
         as: 'bookmarkInfo'
       }
     };
+
 
     const addFieldsStage = {
       $addFields: {
@@ -138,8 +142,11 @@ router.get('/:id', async (req, res) => {
 
     // Check if the discussion is bookmarked by the user
     let bookmarked = false;
-    if (userId) {
-      const bookmark = await Bookmark.findOne({ user: userId, discussion: discussion._id });
+    if (req.userId) {
+      const bookmark = await Bookmark.findOne({ 
+        user: req.userId, 
+        discussion: discussion._id 
+      });
       bookmarked = !!bookmark;
     }
 

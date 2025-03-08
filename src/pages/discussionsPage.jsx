@@ -71,6 +71,18 @@ export function DiscussionsPage() {
   useEffect(() => {
     const newSocket = io('http://localhost:3000');
     setSocket(newSocket);
+
+    newSocket.on('bookmark-added', ({ discussionId }) => {
+      setDiscussions(prev => prev.map(d => 
+        d._id === discussionId ? { ...d, bookmarked: true } : d
+      ));
+    });
+  
+    newSocket.on('bookmark-removed', ({ discussionId }) => {
+      setDiscussions(prev => prev.map(d => 
+        d._id === discussionId ? { ...d, bookmarked: false } : d
+      ));
+    });
   
     newSocket.on('new-discussion', (newDiscussion) => {
       setTotalItems(prev => prev + 1);
@@ -280,10 +292,7 @@ export function DiscussionsPage() {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to toggle bookmark');
       }
-  
-      setDiscussions(prev => prev.map(d => 
-        d._id === discussionId ? { ...d, bookmarked: !d.bookmarked } : d
-      ));
+
     } catch (error) {
       console.error('Error toggling bookmark:', error);
       setError(error.message || 'Failed to toggle bookmark. Please try again.');
@@ -633,6 +642,14 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
       }
     };
 
+    const handleBookmarkUpdate = ({ discussionId, bookmarked }) => {
+      setDiscussions(prev => prev.map(d => 
+        d._id === discussionId ? { ...d, bookmarked } : d
+      ));
+    };
+  
+    socket.on('bookmark-added', handleBookmarkUpdate);
+    socket.on('bookmark-removed', handleBookmarkUpdate);
     socket.on('new-reply', handleNewReply);
     socket.on('update-reply', handleUpdateReply);
     socket.on('delete-reply', handleDeleteReply);
@@ -640,6 +657,8 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
     socket.on('update-discussion', handleDiscussionUpdate);
 
     return () => {
+      socket.off('bookmark-added', handleBookmarkUpdate);
+      socket.off('bookmark-removed', handleBookmarkUpdate);
       socket.off('new-reply', handleNewReply);
       socket.off('update-reply', handleUpdateReply);
       socket.off('delete-reply', handleDeleteReply);
@@ -694,7 +713,6 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
     setReplyPage(nextPage);
     fetchDiscussionDetail(expandedDiscussionId, nextPage);
   };
-
 
   const handleViewClick = (id) => {
     if (expandedDiscussionId === id) {
@@ -855,7 +873,8 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
               </Typography>
 
                 <Box>
-                  <Tooltip title={isSignedIn ? (discussionItem.bookmarked ? "Remove bookmark" : "Bookmark this") : "Sign in to bookmark"}>
+                {isSignedIn && (
+                  <Tooltip title={discussionItem.bookmarked ? "Remove bookmark" : "Bookmark this"}>
                     <IconButton
                       size="small"
                       onClick={(e) => {
@@ -864,9 +883,14 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
                       }}
                       sx={{ color: 'text.secondary' }}
                     >
-                      <Bookmark size={18} fill={discussionItem.bookmarked ? theme.palette.primary.main : 'none'} />
+                      <Bookmark 
+                        size={18} 
+                        fill={discussionItem.bookmarked ? theme.palette.primary.main : 'none'}
+                        color={discussionItem.bookmarked ? theme.palette.primary.main : theme.palette.text.secondary}
+                      />
                     </IconButton>
                   </Tooltip>
+                )}
 
                 <Tooltip title="Share this discussion">
                   <IconButton
