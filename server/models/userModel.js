@@ -107,4 +107,12 @@ userSchema.statics.findTopUsers = function(limit = 10) {
     .limit(limit);
 };
 
+userSchema.virtual('unreadNotifications', {
+  ref: 'Notification',
+  localField: '_id',
+  foreignField: 'recipient',
+  count: true,
+  match: { read: false }
+});
+
 export const User = mongoose.model('User', userSchema);

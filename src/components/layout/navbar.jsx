@@ -4,6 +4,7 @@ import { Shield, MessageSquare, User, Menu, X, BarChart2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { ThemeToggle } from './theme-toggle';
 import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react';
+import { NotificationBell } from '../notificationComponent';
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -60,6 +61,7 @@ export function Navbar() {
             </SignedOut>
 
             <SignedIn>
+              <NotificationBell/>
               <UserButton />
             </SignedIn>
 

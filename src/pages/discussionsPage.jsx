@@ -68,6 +68,7 @@ export function DiscussionsPage() {
 
   useEffect(() => {
     const newSocket = io('http://localhost:3000');
+
     setSocket(newSocket);
 
     newSocket.on('bookmark-added', ({ discussionId }) => {
@@ -654,7 +655,6 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
     socket.on('delete-reply', handleDeleteReply);
     socket.on('like-update', handleLikeUpdate);
     socket.on('update-discussion', handleDiscussionUpdate);
-
     return () => {
       socket.off('bookmark-added', handleBookmarkUpdate);
       socket.off('bookmark-removed', handleBookmarkUpdate);

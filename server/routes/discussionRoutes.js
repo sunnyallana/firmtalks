@@ -3,6 +3,8 @@ import { Discussion } from '../models/discussionModel.js';
 import { Reply } from '../models/replyModel.js';
 import { Like } from '../models/likeModel.js';
 import { User } from '../models/userModel.js';
+import { Notification } from '../models/notificationModel.js'
+import { Bookmark } from '../models/bookmarkModel.js';
 import { clerkClient, requireAuth, getAuth } from '@clerk/express';
 
 const router = express.Router();
@@ -32,9 +34,10 @@ router.use(async (req, res, next) => {
     }
     next();
   } catch (error) {
-    next();
+    next(error);
   }
 });
+
 
 // Get all discussions - public route
 router.get('/', async (req, res) => {
@@ -132,7 +135,6 @@ router.get('/', async (req, res) => {
 // Get single discussion with replies - public route
 router.get('/:id', async (req, res) => {
   try {
-    const { userId } = req.query;
     const discussion = await Discussion.findById(req.params.id)
       .populate('author', 'username email clerkId profileImageUrl');
 
@@ -317,6 +319,10 @@ router.post('/:targetType/:id/like', requireAuth(), async (req, res) => {
     await target.save();
     await user.save();
 
+    const targetAuthor = await (targetType === 'discussions' 
+      ? Discussion.findById(id).select('author')
+      : Reply.findById(id).select('author'));
+    
     const io = req.app.get('io');
     io.emit('like-update', {
       targetModel,
@@ -327,7 +333,26 @@ router.post('/:targetType/:id/like', requireAuth(), async (req, res) => {
       action: existingLike ? 'unlike' : 'like'
     });
 
-
+    if (targetAuthor.author.toString() !== user._id.toString()) {
+      const notification = await Notification.create({
+        recipient: targetAuthor.author,
+        sender: user._id,
+        type: 'like',
+        discussion: target.discussion || target._id,
+        [targetType === 'discussions' ? 'discussion' : 'reply']: id
+      });
+    
+      const populatedNotification = await Notification.findById(notification._id)
+        .populate('sender', 'username profileImageUrl')
+        .populate('discussion', 'title')
+        .populate('reply', 'content');
+    
+        if (targetAuthor.author.toString() !== user._id.toString()) {
+          const io = req.app.get('io');
+          io.to(`user_${targetAuthor.author}`).emit('new-notification', populatedNotification);
+        }
+    }
+    
     res.json({ 
       likesCount: target.likesCount,
       liked: !existingLike 
@@ -523,6 +548,26 @@ router.post('/:id/replies', requireAuth(), async (req, res) => {
 
     const io = req.app.get('io');
     io.emit('new-reply', { discussionId: req.params.id, reply: populatedReply });
+
+    if (discussion.author.toString() !== user._id.toString()) {
+      const notification = await Notification.create({
+        recipient: discussion.author,
+        sender: user._id,
+        type: 'reply',
+        discussion: discussion._id,
+        reply: reply._id
+      });
+      
+      const populatedNotification = await Notification.findById(notification._id)
+        .populate('sender', 'username profileImageUrl')
+        .populate('discussion', 'title')
+        .populate('reply', 'content');
+      
+        if (discussion.author.toString() !== user._id.toString()) {
+          const io = req.app.get('io');
+          io.to(`user_${discussion.author}`).emit('new-notification', populatedNotification);
+        }
+    }
 
     res.status(201).json(populatedReply);
   } catch (error) {

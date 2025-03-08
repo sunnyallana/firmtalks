@@ -1,6 +1,7 @@
 import express from 'express';
 import { User } from '../models/userModel.js';
 import { Bookmark } from '../models/bookmarkModel.js';
+import { Notification } from '../models/notificationModel.js'
 import { clerkClient, requireAuth, getAuth } from '@clerk/express';
 
 const router = express.Router();
@@ -24,7 +25,11 @@ router.get('/:clerkId', async (req, res) => {
       totalDiscussions: user.totalDiscussions,
       totalLikes: user.totalLikes,
       totalReplies: user.totalReplies,
-      totalMalwareScans: user.totalMalwareScans
+      totalMalwareScans: user.totalMalwareScans,
+      unreadNotifications: await Notification.countDocuments({ 
+        recipient: user._id,
+        read: false 
+      })
     };
 
     res.json(stats);
