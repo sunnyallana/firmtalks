@@ -349,7 +349,7 @@ router.post('/:targetType/:id/like', requireAuth(), async (req, res) => {
     
         if (targetAuthor.author.toString() !== user._id.toString()) {
           const io = req.app.get('io');
-          io.to(`user_${targetAuthor.author}`).emit('new-notification', populatedNotification);
+          io.emit('new-notification', populatedNotification);
         }
     }
     
@@ -565,7 +565,7 @@ router.post('/:id/replies', requireAuth(), async (req, res) => {
       
         if (discussion.author.toString() !== user._id.toString()) {
           const io = req.app.get('io');
-          io.to(`user_${discussion.author}`).emit('new-notification', populatedNotification);
+          io.emit('new-notification', populatedNotification);
         }
     }
 

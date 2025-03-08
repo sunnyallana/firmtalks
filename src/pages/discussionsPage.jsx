@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { SignInButton, useAuth } from '@clerk/clerk-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -134,14 +134,13 @@ export function DiscussionsPage() {
         d._id === discussionId ? { ...d, repliesCount: d.repliesCount - 1 } : d
       ));
     });
-  
+
     return () => newSocket.disconnect();
   }, [currentPage, itemsPerPage, sortType]);
 
   useEffect(() => {
     fetchDiscussions();
   }, [sortType, currentPage, itemsPerPage, ]);
-
 
   const fetchDiscussions = async () => {
     try {
