@@ -66,6 +66,7 @@ export function DiscussionsPage() {
   const [totalItems, setTotalItems] = useState(0);
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
+
   useEffect(() => {
     let currentSocket;
     
@@ -298,10 +299,18 @@ export function DiscussionsPage() {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+  
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `HTTP error! status: ${response.status}`);
+      }
+  
+      const result = await response.json();
+
     } catch (error) {
       console.error('Error liking discussion:', error);
-      setError('Failed to like discussion. Please try again.');
+      setError(error.message || 'Failed to like discussion. Please try again.');
+    }finally{
     }
   };
 
@@ -745,25 +754,29 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
 
   const handleLikeReply = async (replyId) => {
     if (!isSignedIn || !discussion) return;
-
+  
     try {
       const token = await getToken();
-      const response = await fetch(`http://localhost:3000/api/discussions/replies/${replyId}/like`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
+      const response = await fetch(
+        `http://localhost:3000/api/discussions/replies/${replyId}/like`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         }
-      });
-
+      );
+  
       if (!response.ok) {
-        throw new Error('Failed to like reply');
+        const errorText = await response.text();
+        throw new Error(errorText || `HTTP error! status: ${response.status}`);
       }
-
+  
       const result = await response.json();
-      
+  
     } catch (error) {
       console.error('Error liking reply:', error);
-      setReplyErrors(prev => ({...prev, [discussion._id]: 'Failed to like reply'}));
+      setReplyErrors(prev => ({...prev, [discussion._id]: error.message}));
     }
   };
 

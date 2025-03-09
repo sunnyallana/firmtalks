@@ -302,11 +302,24 @@ router.post('/:targetType/:id/like', requireAuth(), async (req, res) => {
       targetModel
     });
 
+    const targetAuthor = await (targetType === 'discussions' 
+      ? Discussion.findById(id).select('author')
+      : Reply.findById(id).select('author'));
+
     if (existingLike) {
       // Unlike
       await Like.deleteOne({ _id: existingLike._id });
       target.likesCount = Math.max(0, target.likesCount - 1);
       user.totalLikes = Math.max(0, user.totalLikes - 1);
+
+      // Remove associated notification
+      await Notification.deleteOne({
+        recipient: targetAuthor.author,
+        sender: user._id,
+        type: 'like',
+        [targetType === 'discussions' ? 'discussion' : 'reply']: id
+      });
+  
     } else {
       // Like
       await Like.create({
@@ -317,32 +330,45 @@ router.post('/:targetType/:id/like', requireAuth(), async (req, res) => {
       target.likesCount += 1;
       user.totalLikes += 1;
 
-    const targetAuthor = await (targetType === 'discussions' 
-      ? Discussion.findById(id).select('author')
-      : Reply.findById(id).select('author'));
-
       if (targetAuthor.author.toString() !== user._id.toString()) {
-        const notification = await Notification.create({
-          recipient: targetAuthor.author,
-          sender: user._id,
-          type: 'like',
-          discussion: target.discussion || target._id,
-          [targetType === 'discussions' ? 'discussion' : 'reply']: id
-        });
+        const notification = await Notification.findOneAndUpdate(
+          {
+            recipient: targetAuthor.author,
+            sender: user._id,
+            type: 'like',
+            discussion: target.discussion || target._id,
+            [targetType === 'discussions' ? 'discussion' : 'reply']: id
+          },
+          {
+            $setOnInsert: {
+              recipient: targetAuthor.author,
+              sender: user._id,
+              type: 'like',
+              discussion: target.discussion || target._id,
+              [targetType === 'discussions' ? 'discussion' : 'reply']: id,
+              createdAt: new Date()
+            }
+          },
+          {
+            upsert: true,
+            new: true
+          }
+        );
       
         const populatedNotification = await Notification.findById(notification._id)
           .populate('sender', 'username profileImageUrl')
           .populate('discussion', 'title')
           .populate('reply', 'content');
       
+        if (notification.isNew) {
           const recipientId = targetAuthor.author.toString();
-  
           const recipientSockets = io.userSockets.get(recipientId);
           if (recipientSockets) {
             recipientSockets.forEach(socketId => {
               io.to(socketId).emit('new-notification', populatedNotification);
             });
           }
+        }
       }
     }
 

@@ -33,4 +33,15 @@ const notificationSchema = new mongoose.Schema({
   }
 });
 
+notificationSchema.index(
+  { 
+    recipient: 1,
+    type: 1,
+    'discussion': 1,
+    'reply': 1,
+    'sender': 1
+  }, 
+  { unique: true }
+);
+
 export const Notification = mongoose.model('Notification', notificationSchema);
