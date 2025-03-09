@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { SignInButton, useAuth } from '@clerk/clerk-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -47,6 +47,7 @@ import { io } from 'socket.io-client';
 import { Pagination } from '@mui/material';
 import MarkdownRenderer from '../components/markdown-renderer';
 import removeMarkdown from 'remove-markdown';
+import PropTypes from 'prop-types';
 
 const defaultAvatar = "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
 
@@ -57,7 +58,6 @@ export function DiscussionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingDiscussion, setEditingDiscussion] = useState(null);
-  const theme = useTheme();
   const [socket, setSocket] = useState(null);
   const { discussionId } = useParams();
   const [sortType, setSortType] = useState('recent');
@@ -170,14 +170,9 @@ export function DiscussionsPage() {
         currentSocket.disconnect();
       }
     }
-  }, [currentPage, itemsPerPage, sortType, isSignedIn]);
+  }, [currentPage, itemsPerPage, sortType, isSignedIn, getToken]);
 
-
-  useEffect(() => {
-    fetchDiscussions();
-  }, [sortType, currentPage, itemsPerPage, ]);
-
-  const fetchDiscussions = async () => {
+  const fetchDiscussions = useCallback(async () => {
     try {
       setIsLoading(true);
       const token = await getToken();
@@ -211,7 +206,11 @@ export function DiscussionsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [getToken, sortType, currentPage, itemsPerPage]);
+
+  useEffect(() => {
+    fetchDiscussions();
+  }, [fetchDiscussions]);
 
   const handleSubmitDiscussion = async (data) => {
     if (!isSignedIn) {
@@ -251,7 +250,6 @@ export function DiscussionsPage() {
         throw new Error(errorData.message || `Error ${editingDiscussion ? 'updating' : 'creating'} discussion: ${response.status}`);
       }
 
-      const result = await response.json();
       
       setShowNewDiscussion(false);
       setEditingDiscussion(null);
@@ -273,17 +271,18 @@ export function DiscussionsPage() {
   const handleDeleteDiscussion = async (id) => {
     if (!isSignedIn) return;
     if (window.confirm('Are you sure you want to delete this discussion?')) {
-      try {
-        const token = await getToken();
-        const response = await fetch(`http://localhost:3000/api/discussions/${id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-      } catch (error) {
-        console.error('Error deleting discussion:', error);
-        setError(error.message || 'Failed to delete discussion. Please try again.');
+    
+      const token = await getToken();
+      const response = await fetch(`http://localhost:3000/api/discussions/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete discussion');
       }
     }
   };
@@ -305,12 +304,10 @@ export function DiscussionsPage() {
         throw new Error(errorText || `HTTP error! status: ${response.status}`);
       }
   
-      const result = await response.json();
 
     } catch (error) {
       console.error('Error liking discussion:', error);
       setError(error.message || 'Failed to like discussion. Please try again.');
-    }finally{
     }
   };
 
@@ -539,7 +536,6 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
   const [totalReplyPages, setTotalReplyPages] = useState(1);
   const [isLoadingMoreReplies, setIsLoadingMoreReplies] = useState(false);
   const replyLimit = 10;
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     replySortRef.current = replySort;
@@ -586,24 +582,14 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
     navigator.clipboard.writeText(url);
     handleShareMenuClose();
   };
-  
-  useEffect(() => {
-    if (expandedDiscussionId) {
-      setReplyPage(1);
-      fetchDiscussionDetail(expandedDiscussionId, 1);
-    } else {
-      setDiscussion(null);
-      setOriginalReplies([]);
-      setTotalReplyPages(1);
-    }
-  }, [expandedDiscussionId]);
+
 
   useEffect(() => {
     if (discussion && originalReplies.length > 0) {
       const sortedReplies = sortReplies([...originalReplies], replySort);
       setDiscussion(prev => ({...prev, replies: sortedReplies}));
     }
-  }, [replySort, originalReplies]);
+  }, [replySort, originalReplies, discussion]);
 
 
   useEffect(() => {
@@ -699,8 +685,7 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
   }, [socket, expandedDiscussionId]);
 
 
-
-  const fetchDiscussionDetail = async (id, page = 1) => {
+  const fetchDiscussionDetail = useCallback(async (id, page = 1) => {
     setIsLoadingDetail(true);
     try {
       const response = await fetch(`http://localhost:3000/api/discussions/${id}?replyPage=${page}&replyLimit=${replyLimit}`);
@@ -733,7 +718,19 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
       setIsLoadingDetail(false);
       setIsLoadingMoreReplies(false);
     }
-  };
+  }, [replyLimit, replySort]);
+
+
+  useEffect(() => {
+    if (expandedDiscussionId) {
+      setReplyPage(1);
+      fetchDiscussionDetail(expandedDiscussionId, 1);
+    } else {
+      setDiscussion(null);
+      setOriginalReplies([]);
+      setTotalReplyPages(1);
+    }
+  }, [expandedDiscussionId, fetchDiscussionDetail]);
 
   const handleLoadMoreReplies = () => {
     if (isLoadingMoreReplies || replyPage >= totalReplyPages) return;
@@ -772,8 +769,6 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
         throw new Error(errorText || `HTTP error! status: ${response.status}`);
       }
   
-      const result = await response.json();
-  
     } catch (error) {
       console.error('Error liking reply:', error);
       setReplyErrors(prev => ({...prev, [discussion._id]: error.message}));
@@ -809,8 +804,6 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
         throw new Error(errorData.message || `Failed to ${editingReply ? 'update' : 'post'} reply`);
       }
 
-      const newReply = await response.json();
-      
       setReplyContent('');
       setEditingReply(null);
       setReplyErrors({});
@@ -1331,5 +1324,17 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
     </Box>
   );
 }
+
+DiscussionList.propTypes = {
+  expandedDiscussionId: PropTypes.string,
+  discussions: PropTypes.array.isRequired,
+  onDeleteDiscussion: PropTypes.func.isRequired,
+  onEditDiscussion: PropTypes.func.isRequired,
+  onLikeDiscussion: PropTypes.func.isRequired,
+  onBookmarkDiscussion: PropTypes.func.isRequired,
+  currentUserId: PropTypes.string,
+  socket: PropTypes.object,
+};
+
 
 export default DiscussionsPage;

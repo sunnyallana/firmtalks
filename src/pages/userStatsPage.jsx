@@ -87,7 +87,6 @@ StatItem.defaultProps = {
   bgColor: undefined,
 };
 
-
 export function UserStatsPage() {
   const { clerkId } = useParams();
   const { userId: currentUserId } = useAuth();
