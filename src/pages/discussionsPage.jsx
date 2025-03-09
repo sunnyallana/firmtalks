@@ -67,76 +67,111 @@ export function DiscussionsPage() {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   useEffect(() => {
-    const newSocket = io('http://localhost:3000');
-
-    setSocket(newSocket);
-
-    newSocket.on('bookmark-added', ({ discussionId }) => {
-      setDiscussions(prev => prev.map(d => 
-        d._id === discussionId ? { ...d, bookmarked: true } : d
-      ));
-    });
-  
-    newSocket.on('bookmark-removed', ({ discussionId }) => {
-      setDiscussions(prev => prev.map(d => 
-        d._id === discussionId ? { ...d, bookmarked: false } : d
-      ));
-    });
-  
-    newSocket.on('new-discussion', (newDiscussion) => {
-      setTotalItems(prev => prev + 1);
-      if (currentPage === 1) {
-        setDiscussions(prev => [newDiscussion, ...prev.slice(0, itemsPerPage - 1)]);
-      }
-    });
-  
-    newSocket.on('update-discussion', (updatedDiscussion) => {
-      setDiscussions(prev => prev.map(d => 
-        d._id === updatedDiscussion._id ? updatedDiscussion : d
-      ));
-    });
-  
-    newSocket.on('delete-discussion', (deletedId) => {
-      setTotalItems(prev => prev - 1);
-      setDiscussions(prev => {
-        const updated = prev.filter(d => d._id !== deletedId);
-        if (updated.length === 0 && currentPage > 1) {
-          setCurrentPage(prevPage => prevPage - 1);
-        }
-        return updated;
-      });   
-      fetchDiscussions();
-    });
-
-    newSocket.on('like-update', (data) => {
-      if (data.targetModel === 'Discussion') {
-        setDiscussions(prev => {
-          const updated = prev.map(d => 
-            d._id === data.targetId ? { ...d, likesCount: data.likesCount } : d
-          );
-          
-          if (sortType === 'likes') {
-            return updated.sort((a, b) => b.likesCount - a.likesCount);
-          }
-          return updated;
+    let currentSocket;
+    
+    const connectSocket = async () => {
+      try {
+        const token = await getToken();
+        const newSocket = io('http://localhost:3000', {
+          auth: { token },
+          transports: ['websocket']
         });
-      }
-    });
-
-    newSocket.on('new-reply', ({ discussionId }) => {
-      setDiscussions(prev => prev.map(d => 
-        d._id === discussionId ? { ...d, repliesCount: d.repliesCount + 1 } : d
-      ));
-    });
+        
+        await new Promise((resolve) => {
+          newSocket.on('connect', resolve);
+        });
   
-    newSocket.on('delete-reply', ({ discussionId }) => {
-      setDiscussions(prev => prev.map(d => 
-        d._id === discussionId ? { ...d, repliesCount: d.repliesCount - 1 } : d
-      ));
-    });
+        setSocket(newSocket);
+        currentSocket = newSocket;
+        
+        newSocket.on('bookmark-added', ({ discussionId }) => {
+          setDiscussions(prev => prev.map(d => 
+            d._id === discussionId ? { ...d, bookmarked: true } : d
+          ));
+        });
+      
+        newSocket.on('bookmark-removed', ({ discussionId }) => {
+          setDiscussions(prev => prev.map(d => 
+            d._id === discussionId ? { ...d, bookmarked: false } : d
+          ));
+        });
+      
+        newSocket.on('new-discussion', (newDiscussion) => {
+          setTotalItems(prev => prev + 1);
+          if (currentPage === 1) {
+            setDiscussions(prev => [newDiscussion, ...prev.slice(0, itemsPerPage - 1)]);
+          }
+        });
+      
+        newSocket.on('update-discussion', (updatedDiscussion) => {
+          setDiscussions(prev => prev.map(d => 
+            d._id === updatedDiscussion._id ? updatedDiscussion : d
+          ));
+        });
+      
+        newSocket.on('delete-discussion', (deletedId) => {
+          setTotalItems(prev => prev - 1);
+          setDiscussions(prev => {
+            const updated = prev.filter(d => d._id !== deletedId);
+            if (updated.length === 0 && currentPage > 1) {
+              setCurrentPage(prevPage => prevPage - 1);
+            }
+            return updated;
+          });   
+          fetchDiscussions();
+        });
+    
+        newSocket.on('like-update', (data) => {
+          if (data.targetModel === 'Discussion') {
+            setDiscussions(prev => {
+              const updated = prev.map(d => 
+                d._id === data.targetId ? { ...d, likesCount: data.likesCount } : d
+              );
+              
+              if (sortType === 'likes') {
+                return updated.sort((a, b) => b.likesCount - a.likesCount);
+              }
+              return updated;
+            });
+          }
+        });
+    
+        newSocket.on('new-reply', ({ discussionId }) => {
+          setDiscussions(prev => prev.map(d => 
+            d._id === discussionId ? { ...d, repliesCount: d.repliesCount + 1 } : d
+          ));
+        });
+      
+        newSocket.on('delete-reply', ({ discussionId }) => {
+          setDiscussions(prev => prev.map(d => 
+            d._id === discussionId ? { ...d, repliesCount: d.repliesCount - 1 } : d
+          ));
+        });
+    
+      }
+      catch (error){
+        console.error('Socket connection failed:', error);
+      }
+    }
+    if (isSignedIn){
+      connectSocket();
+    }
+    
 
-    return () => newSocket.disconnect();
-  }, [currentPage, itemsPerPage, sortType]);
+    return () => {
+      if (currentSocket) {
+        currentSocket.off('bookmark-added');
+        currentSocket.off('bookmark-removed');
+        currentSocket.off('new-discussion');
+        currentSocket.off('update-discussion');
+        currentSocket.off('delete-discussion');
+        currentSocket.off('like-update');
+        currentSocket.off('new-reply');
+        currentSocket.off('delete-reply');
+        currentSocket.disconnect();
+      }
+    }
+  }, [currentPage, itemsPerPage, sortType, isSignedIn]);
 
   useEffect(() => {
     fetchDiscussions();

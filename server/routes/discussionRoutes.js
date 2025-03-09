@@ -347,9 +347,13 @@ router.post('/:targetType/:id/like', requireAuth(), async (req, res) => {
         .populate('discussion', 'title')
         .populate('reply', 'content');
     
-        if (targetAuthor.author.toString() !== user._id.toString()) {
-          const io = req.app.get('io');
-          io.emit('new-notification', populatedNotification);
+        const recipientId = targetAuthor.author.toString();
+
+        const recipientSockets = io.userSockets.get(recipientId);
+        if (recipientSockets) {
+          recipientSockets.forEach(socketId => {
+            io.to(socketId).emit('new-notification', populatedNotification);
+          });
         }
     }
     
@@ -563,9 +567,13 @@ router.post('/:id/replies', requireAuth(), async (req, res) => {
         .populate('discussion', 'title')
         .populate('reply', 'content');
       
-        if (discussion.author.toString() !== user._id.toString()) {
-          const io = req.app.get('io');
-          io.emit('new-notification', populatedNotification);
+        const recipientId = discussion.author.toString();
+
+        const recipientSockets = io.userSockets.get(recipientId);
+        if (recipientSockets) {
+          recipientSockets.forEach(socketId => {
+            io.to(socketId).emit('new-notification', populatedNotification);
+          });
         }
     }
 

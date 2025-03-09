@@ -11,32 +11,46 @@ export function NotificationBell() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const socketRef = useRef(null);
+  const notificationHandlerRef = useRef(null);
   const theme = useTheme();
 
-  // Real-time updates with stable dependencies
   useEffect(() => {
     if (!isSignedIn) return;
 
-    socketRef.current = io('http://localhost:3000');
+    const connectSocket = async () => {
+      try {
+        const token = await getToken();
+        socketRef.current = io('http://localhost:3000', {
+          auth: { token },
+          transports: ['websocket']
+        });
 
-    const handleNewNotification = (notification) => {
-      setNotifications(prev => {
-        // Use JSON string comparison for more reliable duplicate check
-        const exists = prev.some(n => JSON.stringify(n) === JSON.stringify(notification));
-        return exists ? prev : [notification, ...prev];
-      });
-      
-      setUnreadCount(prev => (!notification.read ? prev + 1 : prev));
+        const handler = (notification) => {
+          setNotifications(prev => {
+            const exists = prev.some(n => n._id === notification._id);
+            return exists ? prev : [notification, ...prev];
+          });
+          setUnreadCount(prev => (!notification.read ? prev + 1 : prev));
+        };
+
+        notificationHandlerRef.current = handler;
+        socketRef.current.on('new-notification', handler);
+
+      } catch (error) {
+        console.error('Socket connection failed:', error);
+      }
     };
 
-    socketRef.current.on('new-notification', handleNewNotification);
+    connectSocket();
 
     return () => {
       if (socketRef.current) {
+        socketRef.current.off('new-notification', notificationHandlerRef.current);
         socketRef.current.disconnect();
+        socketRef.current = null;
       }
     };
-  }, [isSignedIn]); // Removed theme dependency
+  }, [isSignedIn, getToken]);
 
   // Initial notifications load with error handling
   useEffect(() => {
