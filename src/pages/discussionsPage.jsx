@@ -84,6 +84,7 @@ export function DiscussionsPage() {
         setSocket(newSocket);
         currentSocket = newSocket;
         
+        // Socket event listeners
         newSocket.on('bookmark-added', ({ discussionId }) => {
           setDiscussions(prev => prev.map(d => 
             d._id === discussionId ? { ...d, bookmarked: true } : d
@@ -117,8 +118,7 @@ export function DiscussionsPage() {
               setCurrentPage(prevPage => prevPage - 1);
             }
             return updated;
-          });   
-          fetchDiscussions();
+          });
         });
     
         newSocket.on('like-update', (data) => {
@@ -147,17 +147,16 @@ export function DiscussionsPage() {
             d._id === discussionId ? { ...d, repliesCount: d.repliesCount - 1 } : d
           ));
         });
-    
-      }
-      catch (error){
+  
+      } catch (error) {
         console.error('Socket connection failed:', error);
       }
     }
-    if (isSignedIn){
+  
+    if (isSignedIn) {
       connectSocket();
     }
-    
-
+  
     return () => {
       if (currentSocket) {
         currentSocket.off('bookmark-added');
@@ -172,6 +171,7 @@ export function DiscussionsPage() {
       }
     }
   }, [currentPage, itemsPerPage, sortType, isSignedIn]);
+
 
   useEffect(() => {
     fetchDiscussions();
@@ -675,23 +675,13 @@ export function DiscussionList({ expandedDiscussionId, discussions, onDeleteDisc
         });
       }
     };
-
-    const handleBookmarkUpdate = ({ discussionId, bookmarked }) => {
-      setDiscussions(prev => prev.map(d => 
-        d._id === discussionId ? { ...d, bookmarked } : d
-      ));
-    };
   
-    socket.on('bookmark-added', handleBookmarkUpdate);
-    socket.on('bookmark-removed', handleBookmarkUpdate);
     socket.on('new-reply', handleNewReply);
     socket.on('update-reply', handleUpdateReply);
     socket.on('delete-reply', handleDeleteReply);
     socket.on('like-update', handleLikeUpdate);
     socket.on('update-discussion', handleDiscussionUpdate);
     return () => {
-      socket.off('bookmark-added', handleBookmarkUpdate);
-      socket.off('bookmark-removed', handleBookmarkUpdate);
       socket.off('new-reply', handleNewReply);
       socket.off('update-reply', handleUpdateReply);
       socket.off('delete-reply', handleDeleteReply);
