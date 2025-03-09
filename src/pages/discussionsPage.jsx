@@ -74,7 +74,6 @@ export function DiscussionsPage() {
         const token = await getToken();
         const newSocket = io('http://localhost:3000', {
           auth: { token },
-          transports: ['websocket']
         });
         
         await new Promise((resolve) => {

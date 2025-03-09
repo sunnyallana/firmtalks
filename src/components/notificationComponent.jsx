@@ -49,7 +49,6 @@ export function NotificationBell() {
         const token = await getToken();
         socketRef.current = io('http://localhost:3000', {
           auth: { token },
-          transports: ['websocket']
         });
         socketRef.current.on('new-notification', notificationHandler);
       } catch (error) {
