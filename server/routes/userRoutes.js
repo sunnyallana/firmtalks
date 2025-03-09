@@ -96,7 +96,15 @@ router.put('/me/bookmarks/:discussionId', requireAuth(), async (req, res) => {
       // Remove bookmark
       await Bookmark.findByIdAndDelete(existingBookmark._id);
       action = 'removed';
-      io.emit('bookmark-removed', { userId: user._id, discussionId });
+
+      // io.emit('bookmark-removed', { userId: user._id, discussionId });
+    
+      const userSockets = io.userSockets.get(user._id.toString());
+      if (userSockets) {
+        userSockets.forEach(socketId => {
+          io.to(socketId).emit('bookmark-removed', { discussionId });
+      });}
+
     } else {
       // Add new bookmark
       const newBookmark = new Bookmark({
@@ -105,7 +113,14 @@ router.put('/me/bookmarks/:discussionId', requireAuth(), async (req, res) => {
       });
       result = await newBookmark.save();
       action = 'added';
-      io.emit('bookmark-added', { userId: user._id, discussionId });
+
+      // io.emit('bookmark-added', { userId: user._id, discussionId });
+      const userSockets = io.userSockets.get(user._id.toString());
+      if (userSockets) {
+        userSockets.forEach(socketId => {
+          io.to(socketId).emit('bookmark-added', { discussionId });
+        });
+      }
     }
 
     res.json({

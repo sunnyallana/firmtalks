@@ -13,7 +13,7 @@ export function NotificationBell() {
   const socketRef = useRef(null);
   const theme = useTheme();
 
-  const handler = (notification) => {
+  const notificationHandler = (notification) => {
     setNotifications(prev => {
       const exists = prev.some(n => n._id === notification._id);
       if (!exists) {
@@ -51,7 +51,7 @@ export function NotificationBell() {
           auth: { token },
           transports: ['websocket']
         });
-        socketRef.current.on('new-notification', handler);
+        socketRef.current.on('new-notification', notificationHandler);
       } catch (error) {
         console.error('Socket connection failed:', error);
       }
@@ -61,7 +61,7 @@ export function NotificationBell() {
   
     return () => {
       if (socketRef.current) {
-        socketRef.current.off('new-notification', handler);
+        socketRef.current.off('new-notification', notificationHandler);
         socketRef.current.disconnect();
         socketRef.current = null;
       }
