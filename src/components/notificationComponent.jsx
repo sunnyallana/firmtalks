@@ -11,12 +11,39 @@ export function NotificationBell() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const socketRef = useRef(null);
-  const notificationHandlerRef = useRef(null);
   const theme = useTheme();
+
+  const handler = (notification) => {
+    setNotifications(prev => {
+      const exists = prev.some(n => n._id === notification._id);
+      if (!exists) {
+        setUnreadCount(prevCount => notification.read ? prevCount : prevCount + 1);
+        return [notification, ...prev];
+      }
+      return prev;
+    });
+  };
+
+  const loadNotifications = async () => {
+    try {
+      const token = await getToken();
+      const response = await fetch('http://localhost:3000/api/notifications/me/notifications', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      
+      setNotifications(data);
+      setUnreadCount(data.filter(n => !n.read).length);
+    } catch (error) {
+      console.error('Notification load failed:', error);
+    }
+  };
 
   useEffect(() => {
     if (!isSignedIn) return;
-
+  
     const connectSocket = async () => {
       try {
         const token = await getToken();
@@ -24,57 +51,27 @@ export function NotificationBell() {
           auth: { token },
           transports: ['websocket']
         });
-
-        const handler = (notification) => {
-          setNotifications(prev => {
-            const exists = prev.some(n => n._id === notification._id);
-            return exists ? prev : [notification, ...prev];
-          });
-          setUnreadCount(prev => (!notification.read ? prev + 1 : prev));
-        };
-
-        notificationHandlerRef.current = handler;
         socketRef.current.on('new-notification', handler);
-
       } catch (error) {
         console.error('Socket connection failed:', error);
       }
     };
-
+  
     connectSocket();
-
+  
     return () => {
       if (socketRef.current) {
-        socketRef.current.off('new-notification', notificationHandlerRef.current);
+        socketRef.current.off('new-notification', handler);
         socketRef.current.disconnect();
         socketRef.current = null;
       }
     };
   }, [isSignedIn, getToken]);
 
-  // Initial notifications load with error handling
   useEffect(() => {
     if (!isSignedIn) return;
-
-    const loadNotifications = async () => {
-      try {
-        const token = await getToken();
-        const response = await fetch('http://localhost:3000/api/notifications/me/notifications', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        
-        setNotifications(data);
-        setUnreadCount(data.filter(n => !n.read).length);
-      } catch (error) {
-        console.error('Notification load failed:', error);
-      }
-    };
-
     loadNotifications();
-  }, [isSignedIn, getToken]);
+  }, [isSignedIn, getToken, socketRef]);
 
   const handleMarkAsRead = async () => {
     try {

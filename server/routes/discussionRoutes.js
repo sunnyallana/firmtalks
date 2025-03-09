@@ -131,7 +131,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-
 // Get single discussion with replies - public route
 router.get('/:id', async (req, res) => {
   try {
@@ -293,6 +292,9 @@ router.post('/:targetType/:id/like', requireAuth(), async (req, res) => {
       return res.status(404).json({ message: `${targetModel} not found` });
     }
 
+
+    const io = req.app.get('io');
+
     // Check if like exists
     const existingLike = await Like.findOne({
       user: user._id,
@@ -314,16 +316,39 @@ router.post('/:targetType/:id/like', requireAuth(), async (req, res) => {
       });
       target.likesCount += 1;
       user.totalLikes += 1;
-    }
-
-    await target.save();
-    await user.save();
 
     const targetAuthor = await (targetType === 'discussions' 
       ? Discussion.findById(id).select('author')
       : Reply.findById(id).select('author'));
+
+      if (targetAuthor.author.toString() !== user._id.toString()) {
+        const notification = await Notification.create({
+          recipient: targetAuthor.author,
+          sender: user._id,
+          type: 'like',
+          discussion: target.discussion || target._id,
+          [targetType === 'discussions' ? 'discussion' : 'reply']: id
+        });
+      
+        const populatedNotification = await Notification.findById(notification._id)
+          .populate('sender', 'username profileImageUrl')
+          .populate('discussion', 'title')
+          .populate('reply', 'content');
+      
+          const recipientId = targetAuthor.author.toString();
+  
+          const recipientSockets = io.userSockets.get(recipientId);
+          if (recipientSockets) {
+            recipientSockets.forEach(socketId => {
+              io.to(socketId).emit('new-notification', populatedNotification);
+            });
+          }
+      }
+    }
+
+    await target.save();
+    await user.save();
     
-    const io = req.app.get('io');
     io.emit('like-update', {
       targetModel,
       targetId: id,
@@ -333,30 +358,6 @@ router.post('/:targetType/:id/like', requireAuth(), async (req, res) => {
       action: existingLike ? 'unlike' : 'like'
     });
 
-    if (targetAuthor.author.toString() !== user._id.toString()) {
-      const notification = await Notification.create({
-        recipient: targetAuthor.author,
-        sender: user._id,
-        type: 'like',
-        discussion: target.discussion || target._id,
-        [targetType === 'discussions' ? 'discussion' : 'reply']: id
-      });
-    
-      const populatedNotification = await Notification.findById(notification._id)
-        .populate('sender', 'username profileImageUrl')
-        .populate('discussion', 'title')
-        .populate('reply', 'content');
-    
-        const recipientId = targetAuthor.author.toString();
-
-        const recipientSockets = io.userSockets.get(recipientId);
-        if (recipientSockets) {
-          recipientSockets.forEach(socketId => {
-            io.to(socketId).emit('new-notification', populatedNotification);
-          });
-        }
-    }
-    
     res.json({ 
       likesCount: target.likesCount,
       liked: !existingLike 
