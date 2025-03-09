@@ -1,14 +1,20 @@
-import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button, TextField, Box } from '@mui/material';
+import PropTypes from 'prop-types';
 
 const discussionSchema = z.object({
   title: z.string().min(10, 'Title must be at least 10 characters'),
   content: z.string().min(30, 'Content must be at least 30 characters'),
   tags: z.string().optional(),
 });
+
+DiscussionForm.propTypes = {
+  onSubmit: PropTypes.func.isRequired,
+  initialValues: PropTypes.object,
+  isEditing: PropTypes.bool,
+};
 
 export function DiscussionForm({ onSubmit, initialValues = {}, isEditing = false }) {
   const {

@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { Bell } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { io } from 'socket.io-client';
-import { useTheme } from '@mui/material/styles';
 
 export function NotificationBell() {
   const { isSignedIn, getToken } = useAuth();
@@ -11,8 +10,7 @@ export function NotificationBell() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const socketRef = useRef(null);
-  const theme = useTheme();
-
+  
   const notificationHandler = (notification) => {
     setNotifications(prev => {
       const exists = prev.some(n => n._id === notification._id);
@@ -24,7 +22,7 @@ export function NotificationBell() {
     });
   };
 
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     try {
       const token = await getToken();
       const response = await fetch('http://localhost:3000/api/notifications/me/notifications', {
@@ -39,7 +37,7 @@ export function NotificationBell() {
     } catch (error) {
       console.error('Notification load failed:', error);
     }
-  };
+  }, [getToken]);
 
   useEffect(() => {
     if (!isSignedIn) return;
@@ -70,7 +68,7 @@ export function NotificationBell() {
   useEffect(() => {
     if (!isSignedIn) return;
     loadNotifications();
-  }, [isSignedIn, getToken, socketRef]);
+  }, [isSignedIn, getToken, loadNotifications]);
 
   const handleMarkAsRead = async () => {
     try {

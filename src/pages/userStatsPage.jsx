@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Avatar, Box, Card, CardContent, Typography, Container, Skeleton, useTheme, alpha } from '@mui/material';
-import { ThumbsUp, MessageCircle, Star, Shield, Calendar, MessageSquare, Bookmark } from 'lucide-react';
+import { ThumbsUp, MessageCircle, Star, Shield, Calendar, MessageSquare } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@clerk/clerk-react';
+import PropTypes from 'prop-types';
 
 const StatItem = ({ icon: Icon, label, value, color, iconColor, bgColor }) => {
   const theme = useTheme();
@@ -46,6 +47,47 @@ const StatItem = ({ icon: Icon, label, value, color, iconColor, bgColor }) => {
   );
 };
 
+// Prop validation
+StatItem.propTypes = {
+  /**
+   * The icon component to display.
+   */
+  icon: PropTypes.elementType.isRequired,
+
+  /**
+   * The label text to display below the value.
+   */
+  label: PropTypes.string.isRequired,
+
+  /**
+   * The value to display (e.g., a number or text).
+   */
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+
+  /**
+   * The color theme for the icon and background.
+   */
+  color: PropTypes.string,
+
+  /**
+   * The custom color for the icon.
+   */
+  iconColor: PropTypes.string,
+
+  /**
+   * The custom background color for the icon container.
+   */
+  bgColor: PropTypes.string,
+};
+
+// Default props
+StatItem.defaultProps = {
+  color: 'primary', // Default color if not provided
+  iconColor: undefined,
+  bgColor: undefined,
+};
+
+
 export function UserStatsPage() {
   const { clerkId } = useParams();
   const { userId: currentUserId } = useAuth();
@@ -54,7 +96,6 @@ export function UserStatsPage() {
   const [bookmarks, setBookmarks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const theme = useTheme();
   const navigate = useNavigate();
 
   const isViewingOwnProfile = clerkId === currentUserId;

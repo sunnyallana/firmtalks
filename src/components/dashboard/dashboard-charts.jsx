@@ -1,4 +1,3 @@
-import React from 'react';
 import { Box, Paper, Typography, useMediaQuery, useTheme, Stack } from '@mui/material';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line, CartesianGrid } from 'recharts';
 

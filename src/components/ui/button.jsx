@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { cn } from '../../lib/utils';
 
 export const Button = React.forwardRef(
@@ -25,3 +26,16 @@ export const Button = React.forwardRef(
 );
 
 Button.displayName = 'Button';
+
+// Define prop types
+Button.propTypes = {
+  className: PropTypes.string, // className is optional and should be a string
+  variant: PropTypes.oneOf(['primary', 'secondary', 'ghost']), // variant can be one of these values
+  size: PropTypes.oneOf(['sm', 'md', 'lg']), // size can be one of these values
+};
+
+// Define default props (optional, since defaults are already set in the destructuring)
+Button.defaultProps = {
+  variant: 'primary',
+  size: 'md',
+};

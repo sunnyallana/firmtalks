@@ -1,8 +1,8 @@
-import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeSanitize from 'rehype-sanitize';
+import PropTypes from 'prop-types';
 import 'highlight.js/styles/github.css';
 
 const MarkdownRenderer = ({ children }) => {
@@ -26,13 +26,20 @@ const MarkdownRenderer = ({ children }) => {
           }]
         ]}
         components={{
-          a: ({ node, ...props }) => (
+          a: ({ ...props }) => (
             <a {...props} target="_blank" rel="noopener noreferrer" className="md-link" />
           ),
-          img: ({ node, ...props }) => (
-            <img {...props} style={{ maxWidth: '100%', borderRadius: 4 }} alt={props.alt || ''} />
-          ),
-          table: ({ node, ...props }) => (
+          img: ({ alt, ...props }) => {
+            const imgPropTypes = {
+              alt: PropTypes.string,
+            };
+            PropTypes.checkPropTypes(imgPropTypes, { alt }, 'prop', 'img');
+
+            return (
+              <img {...props} style={{ maxWidth: '100%', borderRadius: 4 }} alt={alt || ''} />
+            );
+          },
+          table: ({ ...props }) => (
             <div style={{ overflowX: 'auto' }}>
               <table {...props} className="md-table" />
             </div>
@@ -44,5 +51,10 @@ const MarkdownRenderer = ({ children }) => {
     </div>
   );
 };
+
+MarkdownRenderer.propTypes = {
+  children: PropTypes.node.isRequired,
+};
+
 
 export default MarkdownRenderer;
