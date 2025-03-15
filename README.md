@@ -49,6 +49,9 @@ A firmware analysis and discussion platform with secure authentication, real-tim
 - Save discussions to MongoDB with user-specific references.
 - Fetch/delete bookmarks via authenticated API endpoints.
 
+### 11. Discussion Sharing
+- **Social Media Sharing**: Generate shareable links for WhatsApp, Twitter, and email via dynamic URL parameters.
+
 ---
 
 ## Technologies Used
