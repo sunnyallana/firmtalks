@@ -27,11 +27,11 @@ export function Navbar() {
 
             <div className="hidden md:ml-10 md:flex md:items-center md:space-x-6">
               <Link
-                to="/scanner"
+                to="/utilities"
                 className="flex items-center text-foreground/80 hover:text-foreground"
               >
                 <Shield className="mr-2 h-4 w-4" />
-                Malware Scanner
+                Utilities
               </Link>
               <Link
                 to="/discussions"
@@ -84,12 +84,12 @@ export function Navbar() {
           <div className="border-t border-border md:hidden">
             <div className="flex flex-col space-y-4 py-4">
               <Link
-                to="/scanner"
+                to="/utilities"
                 className="flex items-center px-2 py-2 text-foreground/80 hover:text-foreground"
                 onClick={() => setIsMenuOpen(false)}
               >
                 <Shield className="mr-2 h-4 w-4" />
-                Malware Scanner
+                Utilities
               </Link>
               <Link
                 to="/discussions"

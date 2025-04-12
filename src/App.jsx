@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { Navbar } from "./components/layout/navbar";
 import { useTheme } from "./lib/theme";
-import { MalwareScannerPage } from "./pages/malwareScannerPage";
+import { UtilitiesPage } from "./pages/utilitiesPage";
 import { DiscussionsPage } from "./pages/discussionsPage";
 import { UserStatsPage } from "./pages/userStatsPage";
 import {
@@ -141,7 +141,7 @@ function App() {
       title: "Malware Detection",
       description:
         "Advanced firmware scanning to identify potential security vulnerabilities",
-      link: "/scanner",
+      link: "/utilities",
     },
     {
       icon: <MessageCircle className="w-10 h-10" />,
@@ -155,7 +155,7 @@ function App() {
       title: "Firmware Analysis",
       description:
         "Deep dive into firmware binaries with our advanced analysis tools",
-      link: "/scanner",
+      link: "/utilities",
     },
   ];
 
@@ -466,7 +466,7 @@ function App() {
                           <Button
                             variant="contained"
                             component={Link}
-                            to="/scanner"
+                            to="/utilities"
                             size="large"
                             sx={{
                               px: 6,
@@ -482,7 +482,7 @@ function App() {
                   </Container>
                 }
               />
-              <Route path="/scanner" element={<MalwareScannerPage />} />
+              <Route path="/utilities" element={<UtilitiesPage />} />
               <Route
                 path="/discussions/:discussionId?"
                 element={<DiscussionsPage />}
