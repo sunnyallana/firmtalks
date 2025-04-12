@@ -188,307 +188,310 @@ function App() {
       <ThemeProvider theme={muiTheme}>
         <CssBaseline />
         <Router>
-          <div className="min-h-screen bg-gradient-to-b from-background-default to-background-paper">
+          <div className="min-h-screen flex flex-col bg-gradient-to-b from-background-default to-background-paper">
             <Navbar />
-            <Routes>
-              <Route
-                path="/"
-                element={
-                  <Container maxWidth="xl" sx={{ py: { xs: 4, md: 8 } }}>
-                    <motion.div
-                      variants={containerVariants}
-                      initial="hidden"
-                      animate="visible"
-                      className="space-y-16"
-                    >
-                      {/* Hero Section */}
-                      <motion.div
-                        variants={itemVariants}
-                        className="text-center space-y-6"
-                      >
-                        <Typography
-                          variant="h1"
-                          sx={{
-                            fontSize: {
-                              xs: "2.5rem",
-                              sm: "3rem",
-                              md: "3.5rem",
-                            },
-                            color: primaryColor,
-                            mb: 2,
-                            position: "relative",
-                            "&::after": {
-                              content: '""',
-                              position: "absolute",
-                              width: "100px",
-                              height: "4px",
-                              background: `linear-gradient(90deg, ${primaryColor}, transparent)`,
-                              bottom: "-16px",
-                              left: "50%",
-                              transform: "translateX(-50%)",
-                            },
-                            textShadow: (theme) =>
-                              theme.palette.mode === "dark"
-                                ? `0 0 20px ${primaryColor}4D`
-                                : "none",
-                          }}
-                        >
-                          FirmTalks
-                        </Typography>
-                        <Typography
-                          variant="h6"
-                          color="text.secondary"
-                          sx={{
-                            maxWidth: "800px",
-                            mx: "auto",
-                            fontSize: { xs: "1rem", sm: "1.1rem" },
-                            lineHeight: 1.6,
-                          }}
-                        >
-                          Secure your firmware with advanced malware detection
-                          and expert community insights.
-                        </Typography>
-                        <Box sx={{ pt: 2 }}>
-                          <Button
-                            variant="contained"
-                            component={Link}
-                            to="/scanner"
-                            size="medium"
-                            sx={{
-                              px: 6,
-                              py: 2,
-                              fontSize: "1rem",
-                            }}
-                          >
-                            Start Scanning Now
-                          </Button>
-                        </Box>
-                      </motion.div>
-
-                      {/* Feature Cards */}
+            <div className="flex-grow">
+              <Routes>
+                <Route
+                  path="/"
+                  element={
+                    <Container maxWidth="xl" sx={{ py: { xs: 4, md: 8 } }}>
                       <motion.div
                         variants={containerVariants}
-                        className="grid grid-cols-1 md:grid-cols-3 gap-6"
+                        initial="hidden"
+                        animate="visible"
+                        className="space-y-16"
                       >
-                        {featureCards.map((card, index) => (
-                          <motion.div
-                            key={index}
-                            variants={itemVariants}
-                            whileHover={{ scale: 1.03, translateY: -8 }}
-                            className="relative"
+                        {/* Hero Section */}
+                        <motion.div
+                          variants={itemVariants}
+                          className="text-center space-y-6"
+                        >
+                          <Typography
+                            variant="h1"
+                            sx={{
+                              fontSize: {
+                                xs: "2.5rem",
+                                sm: "3rem",
+                                md: "3.5rem",
+                              },
+                              color: primaryColor,
+                              mb: 2,
+                              position: "relative",
+                              "&::after": {
+                                content: '""',
+                                position: "absolute",
+                                width: "100px",
+                                height: "4px",
+                                background: `linear-gradient(90deg, ${primaryColor}, transparent)`,
+                                bottom: "-16px",
+                                left: "50%",
+                                transform: "translateX(-50%)",
+                              },
+                              textShadow: (theme) =>
+                                theme.palette.mode === "dark"
+                                  ? `0 0 20px ${primaryColor}4D`
+                                  : "none",
+                            }}
                           >
-                            <Box
+                            FirmTalks
+                          </Typography>
+                          <Typography
+                            variant="h6"
+                            color="text.secondary"
+                            sx={{
+                              maxWidth: "800px",
+                              mx: "auto",
+                              fontSize: { xs: "1rem", sm: "1.1rem" },
+                              lineHeight: 1.6,
+                            }}
+                          >
+                            Secure your firmware with advanced malware detection
+                            and expert community insights.
+                          </Typography>
+                          <Box sx={{ pt: 2 }}>
+                            <Button
+                              variant="contained"
                               component={Link}
-                              to={card.link}
+                              to="/scanner"
+                              size="medium"
                               sx={{
-                                display: "block",
-                                p: 3,
-                                borderRadius: 4,
-                                bgcolor: "background.paper",
-                                border: "1px solid",
-                                borderColor: "divider",
-                                textDecoration: "none",
-                                color: "text.primary",
-                                transition: "all 0.3s ease",
-                                position: "relative",
-                                overflow: "hidden",
-                                minHeight: "280px",
-                                "&:hover": {
-                                  borderColor: primaryColor,
-                                  boxShadow: isDark
-                                    ? `0 8px 32px ${primaryColor}26`
-                                    : "0 8px 32px rgba(0,0,0,0.1)",
-                                  "& .icon-wrapper": {
-                                    transform: "translateY(-2px)",
-                                    color: primaryColor,
-                                  },
-                                },
+                                px: 6,
+                                py: 2,
+                                fontSize: "1rem",
                               }}
                             >
+                              Start Scanning Now
+                            </Button>
+                          </Box>
+                        </motion.div>
+
+                        {/* Feature Cards */}
+                        <motion.div
+                          variants={containerVariants}
+                          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+                        >
+                          {featureCards.map((card, index) => (
+                            <motion.div
+                              key={index}
+                              variants={itemVariants}
+                              whileHover={{ scale: 1.03, translateY: -8 }}
+                              className="relative"
+                            >
                               <Box
-                                className="icon-wrapper"
+                                component={Link}
+                                to={card.link}
                                 sx={{
-                                  color: primaryColor,
-                                  mb: 3,
+                                  display: "block",
+                                  p: 3,
+                                  borderRadius: 4,
+                                  bgcolor: "background.paper",
+                                  border: "1px solid",
+                                  borderColor: "divider",
+                                  textDecoration: "none",
+                                  color: "text.primary",
                                   transition: "all 0.3s ease",
+                                  position: "relative",
+                                  overflow: "hidden",
+                                  minHeight: "280px",
+                                  "&:hover": {
+                                    borderColor: primaryColor,
+                                    boxShadow: isDark
+                                      ? `0 8px 32px ${primaryColor}26`
+                                      : "0 8px 32px rgba(0,0,0,0.1)",
+                                    "& .icon-wrapper": {
+                                      transform: "translateY(-2px)",
+                                      color: primaryColor,
+                                    },
+                                  },
                                 }}
                               >
-                                {card.icon}
-                              </Box>
-                              <Typography
-                                variant="h5"
-                                gutterBottom
-                                sx={{ mb: 2 }}
-                              >
-                                {card.title}
-                              </Typography>
-                              <Typography
-                                variant="body1"
-                                color="text.secondary"
-                                sx={{ mb: 3 }}
-                              >
-                                {card.description}
-                              </Typography>
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  color: primaryColor,
-                                  mt: "auto",
-                                }}
-                              >
-                                <Typography variant="button">
-                                  Learn More
+                                <Box
+                                  className="icon-wrapper"
+                                  sx={{
+                                    color: primaryColor,
+                                    mb: 3,
+                                    transition: "all 0.3s ease",
+                                  }}
+                                >
+                                  {card.icon}
+                                </Box>
+                                <Typography
+                                  variant="h5"
+                                  gutterBottom
+                                  sx={{ mb: 2 }}
+                                >
+                                  {card.title}
                                 </Typography>
-                                <ChevronRight size={20} />
+                                <Typography
+                                  variant="body1"
+                                  color="text.secondary"
+                                  sx={{ mb: 3 }}
+                                >
+                                  {card.description}
+                                </Typography>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    color: primaryColor,
+                                    mt: "auto",
+                                  }}
+                                >
+                                  <Typography variant="button">
+                                    Learn More
+                                  </Typography>
+                                  <ChevronRight size={20} />
+                                </Box>
                               </Box>
-                            </Box>
-                          </motion.div>
-                        ))}
-                      </motion.div>
+                            </motion.div>
+                          ))}
+                        </motion.div>
 
-                      {/* Stats Section */}
-                      <motion.div variants={itemVariants}>
-                        <Typography
-                          variant="h4"
-                          component="h2"
-                          sx={{ mb: 4, textAlign: "center" }}
-                        >
-                          Platform Insights
-                        </Typography>
-                        <DashboardStats />
-                      </motion.div>
-
-                      {/* Charts Section */}
-                      <motion.div variants={itemVariants}>
-                        <DashboardCharts />
-                      </motion.div>
-
-                      {/* Value Proposition */}
-                      <motion.div variants={itemVariants}>
-                        <Box
-                          sx={{
-                            backgroundColor: "background.paper",
-                            borderRadius: 4,
-                            p: 4,
-                            border: "1px solid",
-                            borderColor: "divider",
-                          }}
-                        >
+                        {/* Stats Section */}
+                        <motion.div variants={itemVariants}>
                           <Typography
                             variant="h4"
                             component="h2"
                             sx={{ mb: 4, textAlign: "center" }}
                           >
-                            Why Choose FirmTalks?
+                            Platform Insights
                           </Typography>
+                          <DashboardStats />
+                        </motion.div>
+
+                        {/* Charts Section */}
+                        <motion.div variants={itemVariants}>
+                          <DashboardCharts />
+                        </motion.div>
+
+                        {/* Value Proposition */}
+                        <motion.div variants={itemVariants}>
                           <Box
                             sx={{
-                              display: "grid",
-                              gridTemplateColumns: {
-                                xs: "1fr",
-                                md: "repeat(3, 1fr)",
-                              },
-                              gap: 4,
+                              backgroundColor: "background.paper",
+                              borderRadius: 4,
+                              p: 4,
+                              border: "1px solid",
+                              borderColor: "divider",
                             }}
                           >
-                            {valueProps.map((prop, index) => (
-                              <Box
-                                key={index}
-                                sx={{
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  alignItems: "center",
-                                  textAlign: "center",
-                                  p: 2,
-                                }}
-                              >
+                            <Typography
+                              variant="h4"
+                              component="h2"
+                              sx={{ mb: 4, textAlign: "center" }}
+                            >
+                              Why Choose FirmTalks?
+                            </Typography>
+                            <Box
+                              sx={{
+                                display: "grid",
+                                gridTemplateColumns: {
+                                  xs: "1fr",
+                                  md: "repeat(3, 1fr)",
+                                },
+                                gap: 4,
+                              }}
+                            >
+                              {valueProps.map((prop, index) => (
                                 <Box
+                                  key={index}
                                   sx={{
-                                    backgroundColor: isDark
-                                      ? "rgba(255, 255, 255, 0.1)"
-                                      : "rgba(0, 0, 0, 0.05)",
-                                    width: 64,
-                                    height: 64,
-                                    borderRadius: "50%",
                                     display: "flex",
+                                    flexDirection: "column",
                                     alignItems: "center",
-                                    justifyContent: "center",
-                                    mb: 2,
+                                    textAlign: "center",
+                                    p: 2,
                                   }}
                                 >
-                                  {prop.icon}
+                                  <Box
+                                    sx={{
+                                      backgroundColor: isDark
+                                        ? "rgba(255, 255, 255, 0.1)"
+                                        : "rgba(0, 0, 0, 0.05)",
+                                      width: 64,
+                                      height: 64,
+                                      borderRadius: "50%",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      mb: 2,
+                                    }}
+                                  >
+                                    {prop.icon}
+                                  </Box>
+                                  <Typography variant="h6" sx={{ mb: 1 }}>
+                                    {prop.title}
+                                  </Typography>
+                                  <Typography
+                                    variant="body1"
+                                    color="text.secondary"
+                                  >
+                                    {prop.description}
+                                  </Typography>
                                 </Box>
-                                <Typography variant="h6" sx={{ mb: 1 }}>
-                                  {prop.title}
-                                </Typography>
-                                <Typography
-                                  variant="body1"
-                                  color="text.secondary"
-                                >
-                                  {prop.description}
-                                </Typography>
-                              </Box>
-                            ))}
+                              ))}
+                            </Box>
                           </Box>
-                        </Box>
-                      </motion.div>
+                        </motion.div>
 
-                      {/* Final CTA */}
-                      <motion.div
-                        variants={itemVariants}
-                        className="text-center py-6"
-                      >
-                        <Box
-                          sx={{
-                            backgroundColor: "background.paper",
-                            borderRadius: 4,
-                            p: 4,
-                            border: "1px solid",
-                            borderColor: "divider",
-                          }}
+                        {/* Final CTA */}
+                        <motion.div
+                          variants={itemVariants}
+                          className="text-center py-6"
                         >
-                          <Typography
-                            variant="h4"
-                            component="h2"
-                            sx={{ mb: 2 }}
-                          >
-                            Ready to Secure Your Firmware?
-                          </Typography>
-                          <Typography
-                            variant="body1"
-                            color="text.secondary"
-                            sx={{ mb: 4, maxWidth: 600, mx: "auto" }}
-                          >
-                            Join our community of firmware security experts and
-                            get started with our advanced analysis tools today.
-                          </Typography>
-                          <Button
-                            variant="contained"
-                            component={Link}
-                            to="/utilities"
-                            size="large"
+                          <Box
                             sx={{
-                              px: 6,
-                              py: 2,
-                              fontSize: "1rem",
+                              backgroundColor: "background.paper",
+                              borderRadius: 4,
+                              p: 4,
+                              border: "1px solid",
+                              borderColor: "divider",
                             }}
                           >
-                            Get Started
-                          </Button>
-                        </Box>
+                            <Typography
+                              variant="h4"
+                              component="h2"
+                              sx={{ mb: 2 }}
+                            >
+                              Ready to Secure Your Firmware?
+                            </Typography>
+                            <Typography
+                              variant="body1"
+                              color="text.secondary"
+                              sx={{ mb: 4, maxWidth: 600, mx: "auto" }}
+                            >
+                              Join our community of firmware security experts
+                              and get started with our advanced analysis tools
+                              today.
+                            </Typography>
+                            <Button
+                              variant="contained"
+                              component={Link}
+                              to="/utilities"
+                              size="large"
+                              sx={{
+                                px: 6,
+                                py: 2,
+                                fontSize: "1rem",
+                              }}
+                            >
+                              Get Started
+                            </Button>
+                          </Box>
+                        </motion.div>
                       </motion.div>
-                    </motion.div>
-                  </Container>
-                }
-              />
-              <Route path="/utilities" element={<UtilitiesPage />} />
-              <Route
-                path="/discussions/:discussionId?"
-                element={<DiscussionsPage />}
-              />
-              <Route path="/users/:clerkId" element={<UserStatsPage />} />
-            </Routes>
+                    </Container>
+                  }
+                />
+                <Route path="/utilities" element={<UtilitiesPage />} />
+                <Route
+                  path="/discussions/:discussionId?"
+                  element={<DiscussionsPage />}
+                />
+                <Route path="/users/:clerkId" element={<UserStatsPage />} />
+              </Routes>
+            </div>
             <Footer />
           </div>
         </Router>
