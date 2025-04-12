@@ -1,10 +1,15 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Shield, MessageSquare, User, Menu, X, BarChart2 } from 'lucide-react';
-import { Button } from '../ui/button';
-import { ThemeToggle } from './theme-toggle';
-import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react';
-import { NotificationBell } from '../notificationComponent';
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Shield, MessageSquare, User, Menu, X, BarChart2 } from "lucide-react";
+import { Button } from "../ui/button";
+import { ThemeToggle } from "./theme-toggle";
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  UserButton,
+} from "@clerk/clerk-react";
+import { NotificationBell } from "../notificationComponent";
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -21,22 +26,15 @@ export function Navbar() {
             </Link>
 
             <div className="hidden md:ml-10 md:flex md:items-center md:space-x-6">
-              <Link 
-                to="/statistics" 
-                className="flex items-center text-foreground/80 hover:text-foreground"
-              >
-                <BarChart2 className="mr-2 h-4 w-4" />
-                Platform Statistics
-              </Link>
-              <Link 
-                to="/scanner" 
+              <Link
+                to="/scanner"
                 className="flex items-center text-foreground/80 hover:text-foreground"
               >
                 <Shield className="mr-2 h-4 w-4" />
                 Malware Scanner
               </Link>
-              <Link 
-                to="/discussions" 
+              <Link
+                to="/discussions"
                 className="flex items-center text-foreground/80 hover:text-foreground"
               >
                 <MessageSquare className="mr-2 h-4 w-4" />
@@ -48,7 +46,7 @@ export function Navbar() {
           {/* Desktop Right Section */}
           <div className="flex items-center space-x-4">
             <ThemeToggle />
-            
+
             <SignedOut>
               <div className="hidden md:block">
                 <SignInButton mode="modal">
@@ -61,7 +59,7 @@ export function Navbar() {
             </SignedOut>
 
             <SignedIn>
-              <NotificationBell/>
+              <NotificationBell />
               <UserButton />
             </SignedIn>
 
@@ -85,15 +83,7 @@ export function Navbar() {
         {isMenuOpen && (
           <div className="border-t border-border md:hidden">
             <div className="flex flex-col space-y-4 py-4">
-              <Link 
-                to="/statistics"
-                className="flex items-center px-2 py-2 text-foreground/80 hover:text-foreground"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <BarChart2 className="mr-2 h-4 w-4" />
-                Platform Statistics
-              </Link>
-              <Link 
+              <Link
                 to="/scanner"
                 className="flex items-center px-2 py-2 text-foreground/80 hover:text-foreground"
                 onClick={() => setIsMenuOpen(false)}
@@ -101,7 +91,7 @@ export function Navbar() {
                 <Shield className="mr-2 h-4 w-4" />
                 Malware Scanner
               </Link>
-              <Link 
+              <Link
                 to="/discussions"
                 className="flex items-center px-2 py-2 text-foreground/80 hover:text-foreground"
                 onClick={() => setIsMenuOpen(false)}
@@ -109,12 +99,15 @@ export function Navbar() {
                 <MessageSquare className="mr-2 h-4 w-4" />
                 Discussions
               </Link>
-              
+
               {/* Add sign-in button to mobile menu */}
               <SignedOut>
                 <div className="px-2 py-2">
                   <SignInButton mode="modal">
-                    <Button variant="ghost" className="flex w-full items-center justify-start">
+                    <Button
+                      variant="ghost"
+                      className="flex w-full items-center justify-start"
+                    >
                       <User className="mr-2 h-4 w-4" />
                       <span>Sign In</span>
                     </Button>
