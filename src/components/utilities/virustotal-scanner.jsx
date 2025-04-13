@@ -16,12 +16,8 @@ import {
   Stack,
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import ErrorIcon from "@mui/icons-material/Error";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import WarningIcon from "@mui/icons-material/Warning";
-
-const API_KEY = import.meta.env.VITE_VIRUSTOTAL_API_KEY;
-const BASE_URL = import.meta.env.VITE_VIRUSTOTAL_API_URL;
 
 export const VirusTotalScanner = ({ files, onReset }) => {
   const [scanResults, setScanResults] = useState(null);
@@ -29,175 +25,53 @@ export const VirusTotalScanner = ({ files, onReset }) => {
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState(0);
 
-  const commonHeaders = {
-    "x-apikey": API_KEY,
-    "x-tool": "vt4browsers",
-    "User-Agent":
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0 VT4Browsers/4.0.9",
-    Accept: "application/json",
-  };
-
-  const pollAnalysisResults = async (
-    analysisId,
-    initialInterval = 1000,
-    maxAttempts = 20,
-  ) => {
-    let interval = initialInterval;
-    let attempts = 0;
-
-    while (attempts < maxAttempts) {
-      attempts++;
-      try {
-        const response = await fetch(`${BASE_URL}/analyses/${analysisId}`, {
-          headers: commonHeaders,
-        });
-
-        const data = await response.json();
-        const progress = Math.min(100, (attempts / maxAttempts) * 100);
-        setProgress(progress);
-
-        if (data.data?.attributes?.status === "completed") {
-          return data;
-        }
-
-        // If we know the status is queued, we can adjust our polling
-        if (data.data?.attributes?.status === "queued") {
-          interval = Math.min(interval * 1.5, 5000); // Reduced max interval from 10000 to 5000
-        } else {
-          interval = initialInterval; // Reset to fast polling when status changes
-        }
-
-        if (data.error) {
-          throw new Error(data.error.message || "Analysis error occurred");
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, interval));
-      } catch (err) {
-        console.error("Polling error:", err);
-        // If it's a network error, we might want to retry immediately
-        if (err.message.includes("NetworkError")) {
-          interval = 1000;
-          continue;
-        }
-        throw err;
-      }
-    }
-    throw new Error(`Analysis timed out after ${maxAttempts} attempts`);
-  };
-
   const scanFile = async (file) => {
     setScanStatus("uploading");
     setError(null);
     setProgress(0);
 
     try {
-      // Validate API configuration
-      if (!API_KEY) throw new Error("VirusTotal API key is not configured");
-      if (file.size > 32 * 1024 * 1024)
+      if (file.size > 32 * 1024 * 1024) {
         throw new Error("File size exceeds 32MB limit");
-
-      // Step 1: Get upload URL
-      setProgress(10);
-      const uploadUrlResponse = await fetch(`${BASE_URL}/files/upload_url`, {
-        headers: commonHeaders,
-      });
-
-      if (!uploadUrlResponse.ok) {
-        const text = await uploadUrlResponse.text();
-        throw new Error(`Failed to get upload URL: ${text.substring(0, 100)}`);
       }
 
-      const uploadUrlData = await uploadUrlResponse.json();
-      const uploadUrl = uploadUrlData.data;
-      if (!uploadUrl) throw new Error("Invalid upload URL received");
-
-      // Step 2: Upload file - optimized for speed
-      setScanStatus("uploading");
-      setProgress(30);
+      setProgress(10);
 
       const formData = new FormData();
       formData.append("file", file);
 
-      const uploadResponse = await fetch(uploadUrl, {
+      const response = await fetch("/api/virus-total/scan", {
         method: "POST",
         headers: {
-          ...commonHeaders,
-          // Removing Content-Type header to let the browser set it with the boundary
+          "X-Filename": file.name,
         },
         body: formData,
       });
 
-      if (!uploadResponse.ok) {
-        const text = await uploadResponse.text();
-        throw new Error(`File upload failed: ${text.substring(0, 100)}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Scan failed");
       }
 
-      const uploadData = await uploadResponse.json();
-      const analysisId = uploadData.data?.id;
-      if (!analysisId) throw new Error("No analysis ID received");
+      const data = await response.json();
 
-      // Get file hash from analysis ID
-      setScanStatus("analyzing");
-      setProgress(70);
+      // Simulate progress updates
+      const updateProgress = () => {
+        setProgress((prev) => {
+          const newProgress = prev + 10;
+          if (newProgress >= 90) return 90;
+          return newProgress;
+        });
+      };
 
-      // Convert analysis ID to hash
-      const decoded = atob(analysisId);
-      const fileHash = decoded.split(":")[0];
-      if (!fileHash)
-        throw new Error("Could not extract file hash from analysis ID");
+      const progressInterval = setInterval(updateProgress, 500);
 
-      // Get file report
-      const fileReportResponse = await fetch(`${BASE_URL}/files/${fileHash}`, {
-        headers: commonHeaders,
-      });
-
-      if (!fileReportResponse.ok) {
-        // Fall back to polling if direct lookup fails
-        const analysisResult = await pollAnalysisResults(analysisId);
-
-        // After polling, try to get the full report again
-        const secondAttemptResponse = await fetch(
-          `${BASE_URL}/files/${fileHash}`,
-          {
-            headers: commonHeaders,
-          },
-        );
-
-        if (!secondAttemptResponse.ok) {
-          throw new Error("Failed to get file report after polling");
-        }
-
-        var fileReport = await secondAttemptResponse.json();
-      } else {
-        var fileReport = await fileReportResponse.json();
+      if (data.status !== "completed") {
+        await pollScanResults(data.analysisId || data.data?.id);
       }
 
-      // Process results
-      const stats = fileReport.data?.attributes?.last_analysis_stats;
-      if (!stats) throw new Error("Invalid analysis results");
-
-      const results = fileReport.data?.attributes?.last_analysis_results || {};
-      const engineResults = Object.entries(results)
-        .filter(([_, value]) => value.category === "malicious")
-        .map(([engine, result]) => ({
-          engine,
-          result: result.result,
-          method: result.method,
-          update: result.update,
-        }));
-
-      // Fix permalink to use public VirusTotal page instead of API
-      const publicPermalink = `https://www.virustotal.com/gui/file/${fileHash}/detection`;
-
-      setScanResults({
-        name: file.name,
-        size: file.size,
-        stats,
-        engineResults,
-        fullResults: fileReport,
-        permalink: publicPermalink,
-        hash: fileHash,
-      });
+      clearInterval(progressInterval);
+      setScanResults(data);
       setScanStatus("complete");
       setProgress(100);
     } catch (err) {
@@ -208,9 +82,34 @@ export const VirusTotalScanner = ({ files, onReset }) => {
     }
   };
 
-  // Start scanning when files are received
+  const pollScanResults = async (analysisId) => {
+    let attempts = 0;
+    const maxAttempts = 30;
+    let delay = 1000;
+
+    while (attempts < maxAttempts) {
+      attempts++;
+      try {
+        const response = await fetch(`/api/virus-total/scan/${analysisId}`);
+        const data = await response.json();
+
+        if (data.status === "completed") {
+          return data;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        delay = Math.min(delay * 1.5, 5000);
+      } catch (err) {
+        if (attempts >= maxAttempts) {
+          throw new Error("Scan timed out");
+        }
+      }
+    }
+    throw new Error("Scan timed out");
+  };
+
   useEffect(() => {
-    if (files && files.length > 0) {
+    if (files?.length > 0) {
       scanFile(files[0]);
     }
   }, [files]);

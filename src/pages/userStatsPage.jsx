@@ -133,9 +133,7 @@ export function UserStatsPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch(
-          `http://localhost:3000/api/users/${clerkId}`,
-        );
+        const response = await fetch(`/api/users/${clerkId}`);
         if (!response.ok) throw new Error("User not found");
         const data = await response.json();
         setStats(data);
@@ -150,14 +148,11 @@ export function UserStatsPage() {
       try {
         if (isViewingOwnProfile) {
           const token = await getToken();
-          const response = await fetch(
-            `http://localhost:3000/api/users/me/bookmarks`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
+          const response = await fetch(`/api/users/me/bookmarks`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
             },
-          );
+          });
           if (!response.ok) throw new Error("Failed to fetch bookmarks");
           const data = await response.json();
           setBookmarks(data);

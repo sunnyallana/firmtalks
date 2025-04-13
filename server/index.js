@@ -1,16 +1,17 @@
-import express from 'express';
-import { createServer } from 'http';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import connectDB from './db.js';
-import { clerkClient } from '@clerk/clerk-sdk-node';
-import { clerkMiddleware } from '@clerk/express';
-import discussionRoutes from './routes/discussionRoutes.js';
-import clerkWebhook from './routes/clerkWebhook.js';
-import userRoutes from './routes/userRoutes.js';
-import notificationRoutes from './routes/notificationRoutes.js';
-import { Server } from 'socket.io';
-import { User } from './models/userModel.js'
+import express from "express";
+import { createServer } from "http";
+import cors from "cors";
+import dotenv from "dotenv";
+import connectDB from "./db.js";
+import { clerkClient } from "@clerk/clerk-sdk-node";
+import { clerkMiddleware } from "@clerk/express";
+import discussionRoutes from "./routes/discussionRoutes.js";
+import clerkWebhook from "./routes/clerkWebhook.js";
+import userRoutes from "./routes/userRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
+import { Server } from "socket.io";
+import { User } from "./models/userModel.js";
+import virusTotalRoutes from "./routes/virusTotalRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -28,20 +29,20 @@ const io = new Server(httpServer, {
     origin: "http://localhost:5173",
     methods: ["GET", "POST"],
     allowedHeaders: ["Authorization", "Content-Type"],
-    credentials: true
+    credentials: true,
   },
   connectionStateRecovery: {
     maxDisconnectionDuration: 2 * 60 * 1000,
-    skipMiddlewares: true
-  }
+    skipMiddlewares: true,
+  },
 });
 
 io.userSockets = new Map();
 
-io.on('connection', async (socket) => {
+io.on("connection", async (socket) => {
   try {
     const token = socket.handshake.auth.token;
-    if (!token) throw new Error('Authentication token missing');
+    if (!token) throw new Error("Authentication token missing");
 
     // Verify Clerk token
     const decodedToken = await clerkClient.verifyToken(token);
@@ -54,8 +55,11 @@ io.on('connection', async (socket) => {
       user = await User.create({
         clerkId: clerkUserId,
         email: clerkUser.emailAddresses[0]?.emailAddress,
-        username: clerkUser.username || `${clerkUser.firstName}${clerkUser.lastName}` || `user${Date.now()}`,
-        profileImageUrl: clerkUser.imageUrl
+        username:
+          clerkUser.username ||
+          `${clerkUser.firstName}${clerkUser.lastName}` ||
+          `user${Date.now()}`,
+        profileImageUrl: clerkUser.imageUrl,
       });
     }
 
@@ -67,7 +71,7 @@ io.on('connection', async (socket) => {
     io.userSockets.get(userDbId).add(socket.id);
 
     // Remove socket on disconnect
-    socket.on('disconnect', () => {
+    socket.on("disconnect", () => {
       if (io.userSockets.has(userDbId)) {
         io.userSockets.get(userDbId).delete(socket.id);
         if (io.userSockets.get(userDbId).size === 0) {
@@ -75,20 +79,20 @@ io.on('connection', async (socket) => {
         }
       }
     });
-
   } catch (error) {
-    console.error('Socket connection error:', error.message);
+    console.error("Socket connection error:", error.message);
     socket.disconnect();
   }
 });
 
-app.set('io', io);
+app.set("io", io);
 
 // Routes
-app.use('/api/discussions', discussionRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/webhook', clerkWebhook);
+app.use("/api/discussions", discussionRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/virus-total", virusTotalRoutes);
+app.use("/webhook", clerkWebhook);
 
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
