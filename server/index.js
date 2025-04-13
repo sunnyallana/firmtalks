@@ -12,6 +12,7 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 import { Server } from "socket.io";
 import { User } from "./models/userModel.js";
 import virusTotalRoutes from "./routes/virusTotalRoutes.js";
+import firmwareRoutes from "./routes/firmwareRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -92,6 +93,7 @@ app.use("/api/discussions", discussionRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/virus-total", virusTotalRoutes);
+app.use("/api/firmware", firmwareRoutes);
 app.use("/webhook", clerkWebhook);
 
 const PORT = process.env.PORT || 3000;

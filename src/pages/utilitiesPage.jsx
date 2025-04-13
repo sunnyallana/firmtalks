@@ -1,4 +1,3 @@
-// src/pages/utilities-page.js
 import { useState } from "react";
 import {
   Container,
@@ -13,17 +12,18 @@ import {
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import FolderZipIcon from "@mui/icons-material/FolderZip";
 import { VirusTotalScanner } from "../components/utilities/virustotal-scanner";
+import { FirmwareUnpacker } from "../components/utilities/firmware-unpacker";
 
 export function UtilitiesPage() {
   const [activeTab, setActiveTab] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [filesToScan, setFilesToScan] = useState(null);
-  const [unpackStatus, setUnpackStatus] = useState(null);
+  const [firmwareToUnpack, setFirmwareToUnpack] = useState(null);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
     setFilesToScan(null);
-    setUnpackStatus(null);
+    setFirmwareToUnpack(null);
   };
 
   const handleDragOver = (e) => {
@@ -48,20 +48,23 @@ export function UtilitiesPage() {
   };
 
   const handleFiles = (files) => {
+    if (files.length === 0) return;
+
     if (activeTab === 0) {
       // Malware Scanner
       setFilesToScan(files);
     } else {
-      // Firmware Unpacker
-      setUnpackStatus("processing");
-      setTimeout(() => {
-        setUnpackStatus("complete");
-      }, 3000);
+      // Firmware Unpacker - only take the first file
+      setFirmwareToUnpack(files[0]);
     }
   };
 
   const resetScanner = () => {
     setFilesToScan(null);
+  };
+
+  const resetUnpacker = () => {
+    setFirmwareToUnpack(null);
   };
 
   return (
@@ -101,87 +104,65 @@ export function UtilitiesPage() {
           </>
         )}
 
-        <Box
-          sx={{
-            border: "2px dashed",
-            borderColor: isDragging ? "primary.main" : "grey.300",
-            borderRadius: 2,
-            p: 4,
-            height: 300,
-            textAlign: "center",
-            bgcolor: isDragging ? "primary.50" : "background.paper",
-            transition: "all 0.2s ease-in-out",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          <input
-            type="file"
-            id="file-upload"
-            style={{ display: "none" }}
-            onChange={handleFileSelect}
-          />
-          <label htmlFor="file-upload" style={{ cursor: "pointer" }}>
-            {activeTab === 0 ? (
-              <>
-                <CloudUploadIcon
-                  sx={{ fontSize: 48, color: "text.secondary", mb: 2 }}
-                />
-                <Typography variant="subtitle1" color="primary" gutterBottom>
-                  Click to upload or drag and drop files to scan
-                </Typography>
-              </>
-            ) : (
-              <>
-                <FolderZipIcon
-                  sx={{ fontSize: 48, color: "text.secondary", mb: 2 }}
-                />
-                <Typography variant="subtitle1" color="primary" gutterBottom>
-                  Click to upload or drag and drop firmware to unpack
-                </Typography>
-              </>
-            )}
-            <Typography variant="body2" color="text.secondary">
-              Maximum file size: 32MB
-            </Typography>
-          </label>
-        </Box>
+        {!filesToScan && !firmwareToUnpack && (
+          <Box
+            sx={{
+              border: "2px dashed",
+              borderColor: isDragging ? "primary.main" : "grey.300",
+              borderRadius: 2,
+              p: 4,
+              height: 300,
+              textAlign: "center",
+              bgcolor: isDragging ? "primary.50" : "background.paper",
+              transition: "all 0.2s ease-in-out",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <input
+              type="file"
+              id="file-upload"
+              style={{ display: "none" }}
+              onChange={handleFileSelect}
+            />
+            <label htmlFor="file-upload" style={{ cursor: "pointer" }}>
+              {activeTab === 0 ? (
+                <>
+                  <CloudUploadIcon
+                    sx={{ fontSize: 48, color: "text.secondary", mb: 2 }}
+                  />
+                  <Typography variant="subtitle1" color="primary" gutterBottom>
+                    Click to upload or drag and drop files to scan
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <FolderZipIcon
+                    sx={{ fontSize: 48, color: "text.secondary", mb: 2 }}
+                  />
+                  <Typography variant="subtitle1" color="primary" gutterBottom>
+                    Click to upload or drag and drop firmware to unpack
+                  </Typography>
+                </>
+              )}
+              <Typography variant="body2" color="text.secondary">
+                Maximum file size: 32MB
+              </Typography>
+            </label>
+          </Box>
+        )}
 
         {activeTab === 0 && filesToScan && (
           <VirusTotalScanner files={filesToScan} onReset={resetScanner} />
         )}
 
-        {activeTab === 1 && (
-          <>
-            {unpackStatus === "processing" && (
-              <Box sx={{ mt: 3 }}>
-                <Alert severity="info" icon={<CircularProgress size={20} />}>
-                  Unpacking firmware image...
-                </Alert>
-              </Box>
-            )}
-
-            {unpackStatus === "complete" && (
-              <Box sx={{ mt: 3 }}>
-                <Alert severity="success">
-                  Firmware successfully unpacked! Analysis complete.
-                </Alert>
-                <Paper elevation={1} sx={{ p: 3, mt: 2 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Extracted Files
-                  </Typography>
-                  <Typography color="text.secondary">
-                    (Firmware unpacking results would be displayed here)
-                  </Typography>
-                </Paper>
-              </Box>
-            )}
-          </>
+        {activeTab === 1 && firmwareToUnpack && (
+          <FirmwareUnpacker file={firmwareToUnpack} onReset={resetUnpacker} />
         )}
       </Paper>
     </Container>
