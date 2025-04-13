@@ -28,84 +28,146 @@ export const VirusTotalScanner = ({ files, onReset }) => {
   const scanFile = async (file) => {
     setScanStatus("uploading");
     setError(null);
-    setProgress(0);
+    setProgress(5);
 
     try {
       if (file.size > 32 * 1024 * 1024) {
         throw new Error("File size exceeds 32MB limit");
       }
 
-      setProgress(10);
-
+      // Use XMLHttpRequest for better control over progress
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("/api/virus-total/scan", {
-        method: "POST",
-        headers: {
-          "X-Filename": file.name,
-        },
-        body: formData,
+      // Setup for actual progress tracking
+      const xhr = new XMLHttpRequest();
+
+      // Create a promise wrapper for XMLHttpRequest
+      const uploadPromise = new Promise((resolve, reject) => {
+        xhr.open("POST", "/api/virus-total/scan");
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const progressPercent =
+              Math.round((event.loaded / event.total) * 80) + 5;
+            setProgress(progressPercent);
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const response = JSON.parse(xhr.responseText);
+              resolve(response);
+            } catch (e) {
+              reject(new Error("Invalid response format"));
+            }
+          } else {
+            try {
+              const errorData = JSON.parse(xhr.responseText);
+              reject(
+                new Error(
+                  errorData.error || errorData.details || "Scan failed",
+                ),
+              );
+            } catch (e) {
+              reject(new Error(`Server error: ${xhr.status}`));
+            }
+          }
+        };
+
+        xhr.onerror = () => {
+          reject(new Error("Network or server error"));
+        };
+
+        xhr.ontimeout = () => {
+          reject(new Error("Request timed out"));
+        };
+
+        xhr.timeout = 60000; // 60 seconds timeout
+
+        // Send the form data
+        xhr.send(formData);
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Scan failed");
+      // Wait for the upload and initial processing
+      setProgress(15); // Ensure there's visible progress
+      const response = await uploadPromise;
+
+      // If we already have completed status, we're done
+      if (response.status === "completed") {
+        setScanResults(response);
+        setScanStatus("complete");
+        setProgress(100);
+        return;
       }
 
-      const data = await response.json();
+      // If we get here, we need to poll for results
+      if (response.analysisId) {
+        setProgress(85);
+        setScanStatus("analyzing");
 
-      // Simulate progress updates
-      const updateProgress = () => {
-        setProgress((prev) => {
-          const newProgress = prev + 10;
-          if (newProgress >= 90) return 90;
-          return newProgress;
-        });
-      };
+        let attempts = 0;
+        const maxAttempts = 15;
+        let delay = 500;
 
-      const progressInterval = setInterval(updateProgress, 500);
+        // Polling loop
+        while (attempts < maxAttempts) {
+          attempts++;
+          try {
+            const pollResponse = await fetch(
+              `/api/virus-total/scan/${response.analysisId}`,
+            );
+            if (!pollResponse.ok) {
+              const errorData = await pollResponse.json();
+              throw new Error(errorData.error || "Poll failed");
+            }
 
-      if (data.status !== "completed") {
-        await pollScanResults(data.analysisId || data.data?.id);
+            const data = await pollResponse.json();
+
+            if (data.status === "completed") {
+              // Success - get the full data
+              const finalResponse = await fetch(
+                `/api/virus-total/scan/${response.analysisId}`,
+              );
+              const finalData = await finalResponse.json();
+
+              setScanResults(finalData.data || response);
+              setScanStatus("complete");
+              setProgress(100);
+              return;
+            }
+
+            // Update progress to show activity
+            setProgress(Math.min(85 + attempts, 95));
+
+            // Wait before next poll
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            delay = Math.min(delay * 1.2, 2000);
+          } catch (err) {
+            console.error("Polling error:", err);
+            if (attempts >= maxAttempts - 1) {
+              throw new Error("Scan timed out");
+            }
+          }
+        }
+
+        // If we exit the loop without returning, assume we have results
+        setScanResults(response);
+        setScanStatus("complete");
+        setProgress(100);
+      } else {
+        // No analysis ID, but we have results
+        setScanResults(response);
+        setScanStatus("complete");
+        setProgress(100);
       }
-
-      clearInterval(progressInterval);
-      setScanResults(data);
-      setScanStatus("complete");
-      setProgress(100);
     } catch (err) {
       console.error("Scan error:", err);
       setError(err.message || "An unknown error occurred");
       setScanStatus("error");
       setProgress(0);
     }
-  };
-
-  const pollScanResults = async (analysisId) => {
-    let attempts = 0;
-    const maxAttempts = 30;
-    let delay = 1000;
-
-    while (attempts < maxAttempts) {
-      attempts++;
-      try {
-        const response = await fetch(`/api/virus-total/scan/${analysisId}`);
-        const data = await response.json();
-
-        if (data.status === "completed") {
-          return data;
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        delay = Math.min(delay * 1.5, 5000);
-      } catch (err) {
-        if (attempts >= maxAttempts) {
-          throw new Error("Scan timed out");
-        }
-      }
-    }
-    throw new Error("Scan timed out");
   };
 
   useEffect(() => {
@@ -149,9 +211,24 @@ export const VirusTotalScanner = ({ files, onReset }) => {
 
   if (scanResults) {
     const { name, size, stats, engineResults, permalink, hash } = scanResults;
-    const isClean = stats.malicious === 0;
-    const totalEngines =
-      stats.malicious + stats.suspicious + stats.undetected + stats.harmless;
+    const isClean = stats?.malicious === 0;
+    const totalEngines = stats
+      ? stats.malicious + stats.suspicious + stats.undetected + stats.harmless
+      : 0;
+
+    // Handle missing or incomplete data
+    if (!stats) {
+      return (
+        <Box sx={{ mt: 3 }}>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Incomplete scan results received. The scan may still be processing.
+          </Alert>
+          <Button variant="outlined" onClick={onReset}>
+            Try Again
+          </Button>
+        </Box>
+      );
+    }
 
     return (
       <Box sx={{ mt: 3 }}>
@@ -197,12 +274,7 @@ export const VirusTotalScanner = ({ files, onReset }) => {
           </Paper>
           <Paper
             elevation={1}
-            sx={{
-              p: 2,
-              flex: 1,
-              textAlign: "center",
-              bgcolor: "error.light",
-            }}
+            sx={{ p: 2, flex: 1, textAlign: "center", bgcolor: "error.light" }}
           >
             <Typography variant="h4" color="error.dark">
               {stats.malicious}
@@ -272,7 +344,7 @@ export const VirusTotalScanner = ({ files, onReset }) => {
           </Box>
         </Paper>
 
-        {!isClean && (
+        {!isClean && engineResults && (
           <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
             <Typography variant="subtitle1" gutterBottom>
               Detection Summary
