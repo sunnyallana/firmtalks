@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { useState, useEffect } from "react";
 import {
   Alert,
@@ -22,7 +23,7 @@ import {
 } from "@mui/icons-material";
 
 export function FirmwareUnpacker({ file, onReset }) {
-  const [status, setStatus] = useState("idle"); // idle, uploading, unpacking, success, error
+  const [status, setStatus] = useState("idle");
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -45,7 +46,6 @@ export function FirmwareUnpacker({ file, onReset }) {
     formData.append("firmware", file);
 
     try {
-      // Create a progress tracker for the upload
       const xhr = new XMLHttpRequest();
       xhr.upload.addEventListener("progress", (event) => {
         if (event.lengthComputable) {
@@ -210,3 +210,13 @@ export function FirmwareUnpacker({ file, onReset }) {
     </Box>
   );
 }
+
+FirmwareUnpacker.propTypes = {
+  file: PropTypes.instanceOf(File),
+  onReset: PropTypes.func,
+};
+
+FirmwareUnpacker.defaultProps = {
+  file: null,
+  onReset: () => {},
+};

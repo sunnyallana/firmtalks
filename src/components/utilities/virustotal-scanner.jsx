@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { useState, useEffect } from "react";
 import {
   Box,
@@ -19,7 +20,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import WarningIcon from "@mui/icons-material/Warning";
 
-export const VirusTotalScanner = ({ files, onReset }) => {
+export const VirusTotalScanner = ({ files = [], onReset = () => {} }) => {
   const [scanResults, setScanResults] = useState(null);
   const [scanStatus, setScanStatus] = useState("idle");
   const [error, setError] = useState(null);
@@ -35,14 +36,11 @@ export const VirusTotalScanner = ({ files, onReset }) => {
         throw new Error("File size exceeds 32MB limit");
       }
 
-      // Use XMLHttpRequest for better control over progress
       const formData = new FormData();
       formData.append("file", file);
 
-      // Setup for actual progress tracking
       const xhr = new XMLHttpRequest();
 
-      // Create a promise wrapper for XMLHttpRequest
       const uploadPromise = new Promise((resolve, reject) => {
         xhr.open("POST", "/api/virus-total/scan");
 
@@ -59,7 +57,8 @@ export const VirusTotalScanner = ({ files, onReset }) => {
             try {
               const response = JSON.parse(xhr.responseText);
               resolve(response);
-            } catch (e) {
+            } catch (parseError) {
+              console.error("Error parsing response:", parseError);
               reject(new Error("Invalid response format"));
             }
           } else {
@@ -70,7 +69,8 @@ export const VirusTotalScanner = ({ files, onReset }) => {
                   errorData.error || errorData.details || "Scan failed",
                 ),
               );
-            } catch (e) {
+            } catch (parseError) {
+              console.error("Error parsing error response:", parseError);
               reject(new Error(`Server error: ${xhr.status}`));
             }
           }
@@ -84,17 +84,13 @@ export const VirusTotalScanner = ({ files, onReset }) => {
           reject(new Error("Request timed out"));
         };
 
-        xhr.timeout = 60000; // 60 seconds timeout
-
-        // Send the form data
+        xhr.timeout = 60000;
         xhr.send(formData);
       });
 
-      // Wait for the upload and initial processing
-      setProgress(15); // Ensure there's visible progress
+      setProgress(15);
       const response = await uploadPromise;
 
-      // If we already have completed status, we're done
       if (response.status === "completed") {
         setScanResults(response);
         setScanStatus("complete");
@@ -102,7 +98,6 @@ export const VirusTotalScanner = ({ files, onReset }) => {
         return;
       }
 
-      // If we get here, we need to poll for results
       if (response.analysisId) {
         setProgress(85);
         setScanStatus("analyzing");
@@ -111,7 +106,6 @@ export const VirusTotalScanner = ({ files, onReset }) => {
         const maxAttempts = 15;
         let delay = 500;
 
-        // Polling loop
         while (attempts < maxAttempts) {
           attempts++;
           try {
@@ -126,7 +120,6 @@ export const VirusTotalScanner = ({ files, onReset }) => {
             const data = await pollResponse.json();
 
             if (data.status === "completed") {
-              // Success - get the full data
               const finalResponse = await fetch(
                 `/api/virus-total/scan/${response.analysisId}`,
               );
@@ -138,10 +131,7 @@ export const VirusTotalScanner = ({ files, onReset }) => {
               return;
             }
 
-            // Update progress to show activity
             setProgress(Math.min(85 + attempts, 95));
-
-            // Wait before next poll
             await new Promise((resolve) => setTimeout(resolve, delay));
             delay = Math.min(delay * 1.2, 2000);
           } catch (err) {
@@ -152,12 +142,10 @@ export const VirusTotalScanner = ({ files, onReset }) => {
           }
         }
 
-        // If we exit the loop without returning, assume we have results
         setScanResults(response);
         setScanStatus("complete");
         setProgress(100);
       } else {
-        // No analysis ID, but we have results
         setScanResults(response);
         setScanStatus("complete");
         setProgress(100);
@@ -216,7 +204,6 @@ export const VirusTotalScanner = ({ files, onReset }) => {
       ? stats.malicious + stats.suspicious + stats.undetected + stats.harmless
       : 0;
 
-    // Handle missing or incomplete data
     if (!stats) {
       return (
         <Box sx={{ mt: 3 }}>
@@ -417,4 +404,14 @@ export const VirusTotalScanner = ({ files, onReset }) => {
   }
 
   return null;
+};
+
+VirusTotalScanner.propTypes = {
+  files: PropTypes.arrayOf(PropTypes.instanceOf(File)),
+  onReset: PropTypes.func,
+};
+
+VirusTotalScanner.defaultProps = {
+  files: [],
+  onReset: () => {},
 };

@@ -149,7 +149,7 @@ router.post(
             fileReportResponse.data.data?.attributes?.last_analysis_results ||
             {};
           const engineResults = Object.entries(results)
-            .filter(([_, value]) => value.category === "malicious")
+            .filter(([, value]) => value.category === "malicious")
             .map(([engine, result]) => ({
               engine,
               result: result.result,
@@ -168,14 +168,13 @@ router.post(
           });
         }
       } catch (err) {
-        console.log(
-          "File report not immediately available, will poll for results",
-        );
+        console.log(err.message);
       }
 
       // Poll for results
       console.log("Starting polling process");
       const analysisResult = await pollAnalysisResults(analysisId);
+      console.log(analysisResult);
       console.log("Analysis complete, getting full report");
 
       // Get full report after polling
@@ -198,7 +197,7 @@ router.post(
       const results =
         fileReportResponse.data.data?.attributes?.last_analysis_results || {};
       const engineResults = Object.entries(results)
-        .filter(([_, value]) => value.category === "malicious")
+        .filter(([, value]) => value.category === "malicious")
         .map(([engine, result]) => ({
           engine,
           result: result.result,

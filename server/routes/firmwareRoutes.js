@@ -63,40 +63,29 @@ function readDirectoryRecursive(dir) {
 // Firmware unpack endpoint
 router.post("/unpack", upload.single("firmware"), async (req, res) => {
   try {
-    console.log("Firmware unpack request received");
-
     if (!req.file) {
-      console.log("No file in request");
       return res.status(400).json({ error: "No file uploaded" });
     }
 
-    console.log(
-      "File received:",
-      req.file.originalname,
-      "Path:",
-      req.file.path,
-    );
-
     const filePath = req.file.path;
-    const outputDir = path.join(
-      __dirname,
-      "../extracted",
-      path.basename(filePath),
-    );
+    // Sanitize the output directory name by removing special characters
+    const safeFilename = path.basename(filePath).replace(/[()]/g, "");
+    const outputDir = path.join(__dirname, "../extracted", safeFilename);
 
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    console.log("Output directory:", outputDir);
+    // Escape the file paths for shell usage
+    const escapedFilePath = filePath.replace(/([ ()])/g, "\\$1");
+    const escapedOutputDir = outputDir.replace(/([ ()])/g, "\\$1");
 
     // Run binwalk to extract the firmware
-    const command = `binwalk -e --directory=${outputDir} ${filePath}`;
+    const command = `binwalk -e --directory=${escapedOutputDir} ${escapedFilePath}`;
 
     exec(command, { timeout: 300000 }, (error, stdout, stderr) => {
       if (error) {
         console.error(`Error during binwalk execution: ${error}`);
-        // Clean up uploaded file
         fs.unlinkSync(filePath);
         return res.status(500).json({
           error: "Failed to unpack firmware",
@@ -104,10 +93,7 @@ router.post("/unpack", upload.single("firmware"), async (req, res) => {
         });
       }
 
-      // Read the extracted files structure
       const extractedFiles = readDirectoryRecursive(outputDir);
-
-      // Clean up - remove the original uploaded file
       fs.unlinkSync(filePath);
 
       res.json({

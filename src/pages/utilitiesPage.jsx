@@ -1,14 +1,5 @@
 import { useState } from "react";
-import {
-  Container,
-  Typography,
-  Box,
-  Paper,
-  Alert,
-  CircularProgress,
-  Tabs,
-  Tab,
-} from "@mui/material";
+import { Container, Typography, Box, Paper, Tabs, Tab } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import FolderZipIcon from "@mui/icons-material/FolderZip";
 import { VirusTotalScanner } from "../components/utilities/virustotal-scanner";
